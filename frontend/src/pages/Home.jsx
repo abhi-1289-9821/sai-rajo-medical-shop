@@ -390,73 +390,77 @@ const Home = () => {
 
                   <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
                     {medicinesList.map((item, index) => (
-                      <div key={index} className="flex gap-2 items-center animate-fade-in">
+                      <div 
+                        key={index} 
+                        className="flex flex-col sm:flex-row gap-2 items-start sm:items-center p-3 sm:p-0 bg-slate-100/40 sm:bg-transparent rounded-xl border border-slate-200/50 sm:border-transparent animate-fade-in"
+                      >
                         {/* Medicine Name Input */}
-                        <div className="flex-1">
+                        <div className="w-full sm:flex-1">
                           <input
                             type="text"
                             value={item.name}
                             onChange={(e) => handleMedicineChange(index, 'name', e.target.value)}
                             placeholder="e.g. Paracetamol 500mg"
-                            className="glass-input text-sm py-2.5"
+                            className="glass-input text-sm py-2.5 bg-white sm:bg-white/50"
                             required={index === 0}
                             disabled={loading}
                           />
                         </div>
 
-                        {/* Qty Input */}
-                        <div className="w-20">
-                          <input
-                            type="number"
-                            min="1"
-                            value={item.qty}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              // Allow typing an empty string or numbers freely
-                              handleMedicineChange(index, 'qty', val === '' ? '' : parseInt(val));
-                            }}
-                            onBlur={() => {
-                              // Revert to 1 if left empty or set to less than 1
-                              if (item.qty === '' || parseInt(item.qty) < 1) {
-                                handleMedicineChange(index, 'qty', 1);
-                              }
-                            }}
-                            className="glass-input text-sm py-2.5 text-center px-1"
-                            placeholder="Qty"
-                            required
-                            disabled={loading}
-                          />
-                        </div>
+                        {/* Controls (Qty, Unit, Delete) Row */}
+                        <div className="flex gap-2 w-full sm:w-auto items-center">
+                          {/* Qty Input */}
+                          <div className="w-20 shrink-0">
+                            <input
+                              type="number"
+                              min="1"
+                              value={item.qty}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                handleMedicineChange(index, 'qty', val === '' ? '' : parseInt(val));
+                              }}
+                              onBlur={() => {
+                                if (item.qty === '' || parseInt(item.qty) < 1) {
+                                  handleMedicineChange(index, 'qty', 1);
+                                }
+                              }}
+                              className="glass-input text-sm py-2.5 text-center px-1 bg-white sm:bg-white/50"
+                              placeholder="Qty"
+                              required
+                              disabled={loading}
+                            />
+                          </div>
 
-                        {/* Unit Select Dropdown */}
-                        <div className="w-32">
-                          <select
-                            value={item.unit}
-                            onChange={(e) => handleMedicineChange(index, 'unit', e.target.value)}
-                            className="glass-input text-sm py-2.5 pr-2 focus:ring-0 focus:border-medical-500 cursor-pointer text-slate-600 font-medium"
-                            disabled={loading}
-                          >
-                            <option value="Strips">Strips</option>
-                            <option value="Tablets">Tablets</option>
-                            <option value="Capsules">Capsules</option>
-                            <option value="Bottles">Bottles</option>
-                            <option value="Tubes">Tubes</option>
-                            <option value="Injections">Injections</option>
-                            <option value="Boxes">Boxes</option>
-                          </select>
-                        </div>
+                          {/* Unit Select Dropdown */}
+                          <div className="flex-1 sm:w-32">
+                            <select
+                              value={item.unit}
+                              onChange={(e) => handleMedicineChange(index, 'unit', e.target.value)}
+                              className="glass-input text-sm py-2.5 pr-2 focus:ring-0 focus:border-medical-500 cursor-pointer text-slate-600 font-medium bg-white sm:bg-white/50"
+                              disabled={loading}
+                            >
+                              <option value="Strips">Strips</option>
+                              <option value="Tablets">Tablets</option>
+                              <option value="Capsules">Capsules</option>
+                              <option value="Bottles">Bottles</option>
+                              <option value="Tubes">Tubes</option>
+                              <option value="Injections">Injections</option>
+                              <option value="Boxes">Boxes</option>
+                            </select>
+                          </div>
 
-                        {/* Delete Row Action */}
-                        {medicinesList.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveMedicine(index)}
-                            className="p-2.5 text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all shrink-0"
-                            disabled={loading}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
+                          {/* Delete Row Action */}
+                          {medicinesList.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveMedicine(index)}
+                              className="p-2.5 text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all shrink-0"
+                              disabled={loading}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>

@@ -9,9 +9,25 @@ let io = null;
  * @param {Object} httpServer - Node HTTP server instance
  */
 function init(httpServer) {
+  const allowedOrigins = [
+    process.env.CLIENT_URL,
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174',
+    'http://10.155.56.61:5173',
+    'http://10.155.56.61:5174'
+  ].filter(Boolean);
+
   io = new Server(httpServer, {
     cors: {
-      origin: process.env.CLIENT_URL || 'http://localhost:5173',
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://10.155.56.')) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
       methods: ['GET', 'POST', 'PATCH'],
       credentials: true
     }
