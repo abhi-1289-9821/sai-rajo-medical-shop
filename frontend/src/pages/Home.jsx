@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import API from '../services/api';
+import { useSocket } from '../context/SocketContext';
 import { 
   Phone, MapPin, Clock, ShieldCheck, HeartPulse, 
   Upload, CheckCircle, AlertCircle, ShoppingBag, 
   FileText, Image as ImageIcon, Sparkles, Truck, Mail,
-  Plus, Trash2
+  Plus, Trash2, Search
 } from 'lucide-react';
 
 const Home = () => {
@@ -15,6 +16,144 @@ const Home = () => {
   const [medicinesList, setMedicinesList] = useState([{ name: '', qty: 1, unit: 'Strips' }]);
   const [prescription, setPrescription] = useState(null);
   const [prescriptionPreview, setPrescriptionPreview] = useState('');
+
+  // Socket.io and tracking integration
+  const { socket } = useSocket();
+  const [trackingOrder, setTrackingOrder] = useState(null);
+  const [trackOrderNumber, setTrackOrderNumber] = useState('');
+  const [trackLoading, setTrackLoading] = useState(false);
+  const [trackError, setTrackError] = useState('');
+  const [justPlaced, setJustPlaced] = useState(false);
+
+  // Socket listener for dynamic real-time status updates of the order being tracked
+  useEffect(() => {
+    if (!socket || !trackingOrder) return;
+
+    // Join room for this specific order
+    socket.emit('join_order_track', trackingOrder.order_number);
+    console.log('[Socket] Joined tracking channel for order:', trackingOrder.order_number);
+
+    const handleStatusUpdate = (updatedOrder) => {
+      console.log('[Socket] Received real-time status update:', updatedOrder);
+      if (updatedOrder.order_number === trackingOrder.order_number) {
+        setTrackingOrder(updatedOrder);
+        setSuccessOrder(updatedOrder);
+      }
+    };
+
+    socket.on('order_status_updated', handleStatusUpdate);
+
+    return () => {
+      socket.off('order_status_updated', handleStatusUpdate);
+    };
+  }, [socket, trackingOrder]);
+
+  const handleTrackOrderSubmit = async (e) => {
+    e.preventDefault();
+    let orderNum = trackOrderNumber.trim();
+    if (!orderNum) return;
+
+    // Automatically strip leading hash '#' symbol if entered by the user
+    if (orderNum.startsWith('#')) {
+      orderNum = orderNum.substring(1).trim();
+    }
+
+    setTrackLoading(true);
+    setTrackError('');
+    setTrackingOrder(null);
+
+    try {
+      const response = await API.get(`/orders/track/${encodeURIComponent(orderNum)}`);
+      if (response.data.success) {
+        setTrackingOrder(response.data.order);
+        setSuccessOrder(response.data.order);
+        setJustPlaced(false);
+        setTrackOrderNumber('');
+      } else {
+        setTrackError('Order not found. Please verify the order number.');
+      }
+    } catch (err) {
+      console.error('Track order query failed:', err);
+      setTrackError(
+        err.response?.data?.message || 
+        'Order not found. Please verify the order number.'
+      );
+    } finally {
+      setTrackLoading(false);
+    }
+  };
+
+  const renderTracker = (status) => {
+    const steps = [
+      { id: 'pending', label: 'Order Placed', desc: 'Awaiting pharmacist review' },
+      { id: 'accepted', label: 'Accepted & Preparing', desc: 'Pharmacist is assembling your medicines' },
+      { id: 'delivered', label: 'Out for Delivery / Completed', desc: 'Medicines are on their way to you' }
+    ];
+
+    if (status === 'rejected') {
+      return (
+        <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 my-6 text-left flex items-start gap-3 animate-pulse-subtle">
+          <div className="p-2 bg-rose-100 text-rose-600 rounded-xl">
+            <AlertCircle size={20} />
+          </div>
+          <div>
+            <h4 className="font-bold text-rose-800 text-sm">Order Rejected</h4>
+            <p className="text-rose-600 text-xs mt-0.5">We are unable to process your order. Please call the pharmacist for details.</p>
+          </div>
+        </div>
+      );
+    }
+
+    let activeStepIdx = 0;
+    if (status === 'accepted') activeStepIdx = 1;
+    if (status === 'delivered') activeStepIdx = 2;
+
+    return (
+      <div className="my-6 border-t border-b border-slate-100 py-6 text-left">
+        <h4 className="font-bold text-slate-800 text-sm mb-4">Real-Time Order Progress</h4>
+        <div className="relative flex flex-col gap-6 pl-6 border-l-2 border-slate-200">
+          {steps.map((step, idx) => {
+            const isCompleted = idx < activeStepIdx || status === 'delivered';
+            const isActive = idx === activeStepIdx && status !== 'delivered';
+
+            return (
+              <div key={step.id} className="relative">
+                {/* Timeline Dot Indicator */}
+                <div className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 transition-all flex items-center justify-center ${
+                  isCompleted 
+                    ? 'bg-emerald-500 border-emerald-500 text-white' 
+                    : isActive 
+                      ? 'bg-white border-medical-500 shadow-md shadow-medical-100 ring-4 ring-medical-50' 
+                      : 'bg-white border-slate-300'
+                }`}>
+                  {isCompleted && (
+                    <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
+                  )}
+                  {isActive && (
+                    <span className="w-1.5 h-1.5 bg-medical-500 rounded-full animate-ping"></span>
+                  )}
+                </div>
+
+                {/* Step Details */}
+                <div>
+                  <h5 className={`font-bold text-xs uppercase tracking-wider ${
+                    isCompleted 
+                      ? 'text-emerald-700' 
+                      : isActive 
+                        ? 'text-medical-600 font-extrabold' 
+                        : 'text-slate-400 font-medium'
+                  }`}>
+                    {step.label}
+                  </h5>
+                  <p className="text-[11px] text-slate-500 mt-0.5">{step.desc}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   // Medicines builder action helpers
   const handleAddMedicine = () => {
@@ -141,6 +280,8 @@ const Home = () => {
 
       if (response.data.success) {
         setSuccessOrder(response.data.order);
+        setTrackingOrder(response.data.order);
+        setJustPlaced(true);
         // Clear inputs
         setCustomerName('');
         setPhone('');
@@ -164,6 +305,8 @@ const Home = () => {
 
   const handleReset = () => {
     setSuccessOrder(null);
+    setTrackingOrder(null);
+    setJustPlaced(false);
   };
 
   return (
@@ -291,6 +434,56 @@ const Home = () => {
               <ShieldCheck className="text-emerald-600 shrink-0" size={18} />
               <span>Verified Local Pharmacists handling all orders securely.</span>
             </div>
+          </div>
+
+          {/* Track Your Order Card */}
+          <div className="glass-card rounded-2xl p-6 border border-white/60 space-y-4">
+            <div>
+              <h3 className="font-bold text-slate-800 text-base">
+                Track Your Order
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Check the real-time preparation and delivery status of your order.
+              </p>
+            </div>
+
+            <form onSubmit={handleTrackOrderSubmit} className="space-y-3">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <Search size={14} />
+                </div>
+                <input
+                  type="text"
+                  value={trackOrderNumber}
+                  onChange={(e) => setTrackOrderNumber(e.target.value)}
+                  placeholder="e.g. MED-20260624-1234"
+                  className="w-full text-xs pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-medical-500 focus:ring-1 focus:ring-medical-500"
+                  required
+                />
+              </div>
+
+              {trackError && (
+                <div className="text-xs text-rose-600 font-semibold bg-rose-50 p-2 rounded-lg border border-rose-100 flex items-center gap-1.5 animate-fade-in">
+                  <AlertCircle size={14} className="shrink-0" />
+                  <span>{trackError}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={trackLoading}
+                className="w-full text-xs font-bold text-white bg-slate-800 hover:bg-slate-900 px-4 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-75 disabled:cursor-not-allowed"
+              >
+                {trackLoading ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Searching...
+                  </>
+                ) : (
+                  'Track Order'
+                )}
+              </button>
+            </form>
           </div>
         </div>
 
@@ -549,7 +742,7 @@ const Home = () => {
               </div>
 
               <h2 className="text-2xl font-bold text-slate-800">
-                Order Submitted Successfully!
+                {justPlaced ? 'Order Submitted Successfully!' : 'Order Status & Details'}
               </h2>
               
               <div className="bg-medical-50 border border-medical-100 rounded-2xl p-4 my-6 inline-block">
@@ -559,7 +752,9 @@ const Home = () => {
                 </span>
               </div>
 
-              <div className="text-left space-y-4 max-w-md mx-auto text-sm text-slate-600 border-t border-b border-slate-100 py-6 my-6">
+              {renderTracker(successOrder.status)}
+
+              <div className="text-left space-y-4 max-w-md mx-auto text-sm text-slate-600 border-b border-slate-100 pb-6 my-6">
                 <div>
                   <span className="font-semibold text-slate-700">Name:</span> {successOrder.customer_name}
                 </div>
@@ -576,7 +771,7 @@ const Home = () => {
                   </div>
                 </div>
                 {successOrder.prescription_url && (
-                  <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                  <div className="flex items-center gap-2 text-xs font-medium text-slate-500 pt-2 border-t border-slate-100 mt-2">
                     <FileText size={16} className="text-medical-500" />
                     Prescription uploaded successfully.
                   </div>
@@ -584,14 +779,17 @@ const Home = () => {
               </div>
 
               <p className="text-sm text-slate-500 leading-relaxed mb-6">
-                Our pharmacist will review your order details. If necessary, we will call you on your phone number to verify the prescription details.
+                {successOrder.status === 'pending' && 'Our pharmacist will review your order details. If necessary, we will call you on your phone number.'}
+                {successOrder.status === 'accepted' && 'Your order has been approved and is being packed. Our delivery agent will bring it to your address soon!'}
+                {successOrder.status === 'delivered' && 'Your order has been successfully delivered. Thank you for choosing Sai Rajo Medical Hall!'}
+                {successOrder.status === 'rejected' && 'This order could not be fulfilled. Please get in touch with our store pharmacists for assistance.'}
               </p>
 
               <button
                 onClick={handleReset}
                 className="btn-secondary w-full py-3.5 text-sm font-semibold hover:border-slate-300"
               >
-                Place Another Order
+                {justPlaced ? 'Place Another Order' : 'Back to Home'}
               </button>
             </div>
           )}

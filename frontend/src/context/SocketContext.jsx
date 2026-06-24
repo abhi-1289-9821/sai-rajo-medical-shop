@@ -10,43 +10,32 @@ export const SocketProvider = ({ children }) => {
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    let socketInstance = null;
+    const socketUrl = import.meta.env.VITE_WS_URL || 'http://localhost:5000';
+    
+    const socketInstance = io(socketUrl, {
+      withCredentials: true,
+      transports: ['websocket', 'polling']
+    });
 
-    // Connect to websocket ONLY if the admin is logged in
-    if (isAuthenticated) {
-      const socketUrl = import.meta.env.VITE_WS_URL || 'http://localhost:5000';
-      
-      socketInstance = io(socketUrl, {
-        withCredentials: true,
-        transports: ['websocket', 'polling']
-      });
+    socketInstance.on('connect', () => {
+      console.log('[Socket.IO Client] Connected to server');
+    });
 
-      socketInstance.on('connect', () => {
-        console.log('[Socket.IO Client] Connected to server');
-      });
-
-      socketInstance.on('new_order_received', (order) => {
+    socketInstance.on('new_order_received', (order) => {
+      if (isAuthenticated) {
         console.log('[Socket.IO Client] Received new order notification:', order);
         setLatestOrder(order);
-      });
-
-      socketInstance.on('disconnect', () => {
-        console.log('[Socket.IO Client] Disconnected from server');
-      });
-
-      setSocket(socketInstance);
-    } else {
-      // Disconnect socket if logged out
-      if (socket) {
-        socket.disconnect();
-        setSocket(null);
       }
-    }
+    });
+
+    socketInstance.on('disconnect', () => {
+      console.log('[Socket.IO Client] Disconnected from server');
+    });
+
+    setSocket(socketInstance);
 
     return () => {
-      if (socketInstance) {
-        socketInstance.disconnect();
-      }
+      socketInstance.disconnect();
     };
   }, [isAuthenticated]);
 

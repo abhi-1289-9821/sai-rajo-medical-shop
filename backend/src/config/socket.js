@@ -36,6 +36,11 @@ function init(httpServer) {
   io.on('connection', (socket) => {
     console.log(`[Socket.IO] Admin/Client connected: ${socket.id}`);
 
+    socket.on('join_order_track', (orderNumber) => {
+      console.log(`[Socket.IO] Socket ${socket.id} joined tracking room: ${orderNumber}`);
+      socket.join(orderNumber);
+    });
+
     socket.on('disconnect', () => {
       console.log(`[Socket.IO] Admin/Client disconnected: ${socket.id}`);
     });
@@ -67,8 +72,22 @@ function notifyNewOrder(orderData) {
   }
 }
 
+/**
+ * Emits an event to a specific order tracking room when the order status updates.
+ * @param {Object} orderData - Database record of the updated order
+ */
+function notifyOrderStatusUpdate(orderData) {
+  if (io) {
+    io.to(orderData.order_number).emit('order_status_updated', orderData);
+    console.log(`[Socket.IO] Broadcast order_status_updated event for order #${orderData.order_number}`);
+  } else {
+    console.warn('[Socket.IO] Socket server is not running. Order status update not broadcast.');
+  }
+}
+
 module.exports = {
   init,
   getIO,
-  notifyNewOrder
+  notifyNewOrder,
+  notifyOrderStatusUpdate
 };

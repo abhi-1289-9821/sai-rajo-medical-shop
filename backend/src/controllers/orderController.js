@@ -137,6 +137,9 @@ const updateOrderStatus = async (req, res, next) => {
     const updatedOrders = await db.query('SELECT * FROM orders WHERE id = ?', [id]);
     const updatedOrder = updatedOrders[0];
 
+    // Notify client of status change in real time via Socket.io
+    socketConfig.notifyOrderStatusUpdate(updatedOrder);
+
     return res.status(200).json({
       success: true,
       message: `Order status updated to ${status}.`,
@@ -147,8 +150,36 @@ const updateOrderStatus = async (req, res, next) => {
   }
 };
 
+/**
+ * Retrieve order tracking details by order number (Public feature)
+ */
+const getOrderByNumber = async (req, res, next) => {
+  try {
+    const { order_number } = req.params;
+    
+    // Fetch order record from database
+    const orders = await db.query('SELECT * FROM orders WHERE order_number = ?', [order_number]);
+    if (orders.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found.'
+      });
+    }
+
+    const order = orders[0];
+
+    return res.status(200).json({
+      success: true,
+      order
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createOrder,
   getOrders,
-  updateOrderStatus
+  updateOrderStatus,
+  getOrderByNumber
 };
