@@ -44,9 +44,14 @@ const login = async (req, res, next) => {
     }
 
     // Generate JWT token
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error('JWT_SECRET env variable is not set!');
+    }
+
     const token = jwt.sign(
       { id: admin.id, username: admin.username },
-      process.env.JWT_SECRET || 'supersecure_medi_store_secret_jwt_key_123!',
+      secret,
       { expiresIn: '24h' }
     );
 
@@ -65,6 +70,36 @@ const login = async (req, res, next) => {
   }
 };
 
+/**
+ * Verify active JWT session and return refreshed token
+ */
+const refresh = async (req, res, next) => {
+  try {
+    const admin = req.admin; // Injected by authMiddleware
+
+    // Issue a new token
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error('JWT_SECRET env variable is not set!');
+    }
+
+    const newToken = jwt.sign(
+      { id: admin.id, username: admin.username },
+      secret,
+      { expiresIn: '24h' }
+    );
+
+    return res.status(200).json({
+      success: true,
+      token: newToken,
+      admin
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
-  login
+  login,
+  refresh
 };

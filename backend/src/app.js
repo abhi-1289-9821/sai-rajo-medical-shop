@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const authRoutes = require('./routes/authRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const authMiddleware = require('./middleware/authMiddleware');
 const errorMiddleware = require('./middleware/errorMiddleware');
 
 const app = express();
@@ -34,8 +35,8 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static prescription upload files
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Serve static prescription upload files (protected by authentication)
+app.use('/uploads', authMiddleware, express.static(path.join(__dirname, '../uploads')));
 
 // API routing
 app.use('/api/auth', authRoutes);

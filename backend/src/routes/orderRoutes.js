@@ -4,8 +4,22 @@ const orderController = require('../controllers/orderController');
 const authMiddleware = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
+const rateLimit = require('express-rate-limit');
+
+// Rate limiter for customer order creation to prevent spam/DoS
+const orderLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 requests per windowMs
+  message: {
+    success: false,
+    message: 'Too many order submissions from this IP. Please try again after 15 minutes.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Public route: customer order submission with optional prescription file
-router.post('/', upload.single('prescription'), orderController.createOrder);
+router.post('/', orderLimiter, upload.single('prescription'), orderController.createOrder);
 
 // Public route: customer tracking order status by order number
 router.get('/track/:order_number', orderController.getOrderByNumber);

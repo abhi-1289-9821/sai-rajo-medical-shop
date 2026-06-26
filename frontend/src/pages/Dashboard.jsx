@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 
 const Dashboard = () => {
-  const { admin, logout } = useAuth();
+  const { admin, logout, token } = useAuth();
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -18,9 +18,9 @@ const Dashboard = () => {
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [error, setError] = useState('');
 
-  const BACKEND_URL = import.meta.env.VITE_API_URL ? 
-    import.meta.env.VITE_API_URL.replace('/api', '') : 
-    'http://localhost:5000';
+  const BACKEND_URL = import.meta.env.VITE_API_URL
+    ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '')
+    : 'http://localhost:5000';
 
   // Fetch initial orders on load
   const fetchOrders = async () => {
@@ -287,7 +287,7 @@ const Dashboard = () => {
                     {/* Prescription Badge */}
                     {order.prescription_url ? (
                       <a
-                        href={`${BACKEND_URL}${order.prescription_url}`}
+                        href={`${BACKEND_URL}${order.prescription_url}?token=${token}`}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 px-3 py-1 bg-medical-50 text-medical-700 hover:bg-medical-100 border border-medical-100 rounded-lg text-xs font-semibold transition-colors"

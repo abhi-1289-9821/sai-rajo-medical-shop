@@ -53,17 +53,19 @@ async function seed() {
     // Check if an admin already exists
     const [rows] = await connection.query('SELECT COUNT(*) as count FROM admins');
     if (rows[0].count === 0) {
+      const { randomBytes } = require('crypto');
       const defaultUsername = 'admin';
-      const defaultPassword = 'admin123';
+      const defaultPassword = randomBytes(12).toString('base64url');
       const salt = await bcrypt.genSalt(10);
       const passwordHash = await bcrypt.hash(defaultPassword, salt);
 
-      console.log(`Inserting default admin user (Username: ${defaultUsername}, Password: ${defaultPassword})...`);
+      console.log(`Inserting default admin user (Username: ${defaultUsername})...`);
       await connection.query(
         'INSERT INTO admins (username, password_hash) VALUES (?, ?)',
         [defaultUsername, passwordHash]
       );
-      console.log('Default admin user created successfully.');
+      console.log(`✅ Admin created. Username: ${defaultUsername}  Password: ${defaultPassword}`);
+      console.log('⚠️  Save this password — it will not be shown again.');
     } else {
       console.log('Admins table already contains accounts. Skipping default admin insert.');
     }

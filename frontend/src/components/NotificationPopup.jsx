@@ -25,9 +25,7 @@ const NotificationPopup = ({ onNewOrderReceived }) => {
 
   const handleClose = () => {
     setVisible(false);
-    setTimeout(() => {
-      clearLatestOrder();
-    }, 300);
+    clearLatestOrder();
   };
 
   // Synthesize a clean, gentle notification chime using Web Audio API

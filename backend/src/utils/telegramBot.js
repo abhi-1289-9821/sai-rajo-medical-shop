@@ -1,4 +1,3 @@
-const https = require('https');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
@@ -32,50 +31,31 @@ ${order.medicines_requested}
 
 *Prescription:* ${hasPrescription}`;
 
-  const payload = JSON.stringify({
-    chat_id: chatId,
-    text: message,
-    parse_mode: 'Markdown'
-  });
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: message,
+        parse_mode: 'Markdown'
+      })
+    });
 
-  const options = {
-    hostname: 'api.telegram.org',
-    port: 443,
-    path: `/bot${token}/sendMessage`,
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Content-Length': payload.length
+    if (response.ok) {
+      console.log(`[Telegram Notification] Sent successfully for order #${order.order_number}`);
+      return true;
+    } else {
+      const data = await response.text();
+      console.error(`[Telegram Notification] Error response (Status ${response.status}):`, data);
+      return false;
     }
-  };
-
-  return new Promise((resolve, reject) => {
-    const req = https.request(options, (res) => {
-      let data = '';
-      
-      res.on('data', (chunk) => {
-        data += chunk;
-      });
-
-      res.on('end', () => {
-        if (res.statusCode === 200) {
-          console.log(`[Telegram Notification] Sent successfully for order #${order.order_number}`);
-          resolve(true);
-        } else {
-          console.error(`[Telegram Notification] Error response (Status ${res.statusCode}):`, data);
-          resolve(false); // Resolve false so it doesn't block client response
-        }
-      });
-    });
-
-    req.on('error', (error) => {
-      console.error('[Telegram Notification] Connection error:', error);
-      resolve(false); // Resolve false so it doesn't block client response
-    });
-
-    req.write(payload);
-    req.end();
-  });
+  } catch (error) {
+    console.error('[Telegram Notification] Connection error:', error.message);
+    return false;
+  }
 }
 
 module.exports = {

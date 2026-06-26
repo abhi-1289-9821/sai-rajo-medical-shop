@@ -2,8 +2,10 @@ const db = require('../config/db');
 const socketConfig = require('../config/socket');
 const telegramBot = require('../utils/telegramBot');
 
+const { randomBytes } = require('crypto');
+
 /**
- * Generate a unique order number (e.g., MED-YYYYMMDD-XXXX)
+ * Generate a unique order number (e.g., MED-YYYYMMDD-XXXXXX)
  */
 function generateOrderNumber() {
   const date = new Date();
@@ -11,8 +13,8 @@ function generateOrderNumber() {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   
-  // 4-digit random number
-  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  // Use crypto for a cryptographically secure suffix to avoid collisions under concurrency
+  const randomSuffix = randomBytes(3).toString('hex').toUpperCase();
   
   return `MED-${year}${month}${day}-${randomSuffix}`;
 }
@@ -65,6 +67,9 @@ const createOrder = async (req, res, next) => {
     );
 
     const insertedOrderId = result.insertId;
+    if (!insertedOrderId) {
+      throw new Error('Order insertion failed — no insertId returned.');
+    }
 
     // Fetch the created order to get absolute fields/timestamps
     const createdOrders = await db.query('SELECT * FROM orders WHERE id = ?', [insertedOrderId]);
@@ -137,6 +142,20 @@ const updateOrderStatus = async (req, res, next) => {
     const updatedOrders = await db.query('SELECT * FROM orders WHERE id = ?', [id]);
     const updatedOrder = updatedOrders[0];
 
+    // If order reaches a terminal status (delivered or rejected), clean up prescription file
+    if (['rejected', 'delivered'].includes(status) && orders[0].prescription_url) {
+      const fs = require('fs');
+      const path = require('path');
+      const filePath = path.join(__dirname, '../../', orders[0].prescription_url);
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.warn('[Upload Cleanup] Failed to delete prescription:', err.message);
+        } else {
+          console.log('[Upload Cleanup] Deleted prescription:', filePath);
+        }
+      });
+    }
+
     // Notify client of status change in real time via Socket.io
     socketConfig.notifyOrderStatusUpdate(updatedOrder);
 
@@ -150,19 +169,27 @@ const updateOrderStatus = async (req, res, next) => {
   }
 };
 
-/**
- * Retrieve order tracking details by order number (Public feature)
- */
 const getOrderByNumber = async (req, res, next) => {
   try {
     const { order_number } = req.params;
+    const { phone } = req.query;
+
+    if (!phone || !phone.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number is required for verification.'
+      });
+    }
     
-    // Fetch order record from database
-    const orders = await db.query('SELECT * FROM orders WHERE order_number = ?', [order_number]);
+    // Fetch order record from database matching BOTH order number and phone number
+    const orders = await db.query(
+      'SELECT * FROM orders WHERE order_number = ? AND phone = ?', 
+      [order_number, phone.trim()]
+    );
     if (orders.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Order not found.'
+        message: 'Order not found or phone number verification failed.'
       });
     }
 

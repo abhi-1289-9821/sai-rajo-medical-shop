@@ -21,6 +21,7 @@ const Home = () => {
   const { socket } = useSocket();
   const [trackingOrder, setTrackingOrder] = useState(null);
   const [trackOrderNumber, setTrackOrderNumber] = useState('');
+  const [trackPhone, setTrackPhone] = useState('');
   const [trackLoading, setTrackLoading] = useState(false);
   const [trackError, setTrackError] = useState('');
   const [justPlaced, setJustPlaced] = useState(false);
@@ -51,7 +52,8 @@ const Home = () => {
   const handleTrackOrderSubmit = async (e) => {
     e.preventDefault();
     let orderNum = trackOrderNumber.trim();
-    if (!orderNum) return;
+    let phoneNum = trackPhone.trim();
+    if (!orderNum || !phoneNum) return;
 
     // Automatically strip leading hash '#' symbol if entered by the user
     if (orderNum.startsWith('#')) {
@@ -63,20 +65,21 @@ const Home = () => {
     setTrackingOrder(null);
 
     try {
-      const response = await API.get(`/orders/track/${encodeURIComponent(orderNum)}`);
+      const response = await API.get(`/orders/track/${encodeURIComponent(orderNum)}?phone=${encodeURIComponent(phoneNum)}`);
       if (response.data.success) {
         setTrackingOrder(response.data.order);
         setSuccessOrder(response.data.order);
         setJustPlaced(false);
         setTrackOrderNumber('');
+        setTrackPhone('');
       } else {
-        setTrackError('Order not found. Please verify the order number.');
+        setTrackError('Order not found. Please verify the order number and phone.');
       }
     } catch (err) {
       console.error('Track order query failed:', err);
       setTrackError(
         err.response?.data?.message || 
-        'Order not found. Please verify the order number.'
+        'Order not found. Please verify the order number and phone.'
       );
     } finally {
       setTrackLoading(false);
@@ -228,11 +231,11 @@ const Home = () => {
     if (!customerName.trim()) tempErrors.customerName = 'Name is required.';
     
     // Check phone format
-    const phoneRegex = /^[0-9+\s-]{10,15}$/;
+    const phoneRegex = /^(\+91[\s-]?)?[6-9]\d{9}$/;
     if (!phone.trim()) {
       tempErrors.phone = 'Phone number is required.';
-    } else if (!phoneRegex.test(phone.trim())) {
-      tempErrors.phone = 'Please enter a valid phone number (at least 10 digits).';
+    } else if (!phoneRegex.test(phone.trim().replace(/[\s-]/g, ''))) {
+      tempErrors.phone = 'Please enter a valid 10-digit Indian phone number.';
     }
 
     if (!address.trim()) tempErrors.address = 'Delivery address is required.';
@@ -457,6 +460,20 @@ const Home = () => {
                   value={trackOrderNumber}
                   onChange={(e) => setTrackOrderNumber(e.target.value)}
                   placeholder="e.g. MED-20260624-1234"
+                  className="w-full text-xs pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-medical-500 focus:ring-1 focus:ring-medical-500"
+                  required
+                />
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <Phone size={14} />
+                </div>
+                <input
+                  type="tel"
+                  value={trackPhone}
+                  onChange={(e) => setTrackPhone(e.target.value)}
+                  placeholder="Verification Phone Number"
                   className="w-full text-xs pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-medical-500 focus:ring-1 focus:ring-medical-500"
                   required
                 />

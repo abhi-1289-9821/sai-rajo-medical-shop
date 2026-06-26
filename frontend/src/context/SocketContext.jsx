@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 
@@ -8,6 +8,12 @@ export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [latestOrder, setLatestOrder] = useState(null);
   const { isAuthenticated } = useAuth();
+
+  // Store isAuthenticated in a ref to avoid reconnecting socket when auth state changes
+  const isAuthenticatedRef = useRef(isAuthenticated);
+  useEffect(() => {
+    isAuthenticatedRef.current = isAuthenticated;
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const socketUrl = import.meta.env.VITE_WS_URL || 'http://localhost:5000';
@@ -22,7 +28,7 @@ export const SocketProvider = ({ children }) => {
     });
 
     socketInstance.on('new_order_received', (order) => {
-      if (isAuthenticated) {
+      if (isAuthenticatedRef.current) {
         console.log('[Socket.IO Client] Received new order notification:', order);
         setLatestOrder(order);
       }
@@ -37,7 +43,7 @@ export const SocketProvider = ({ children }) => {
     return () => {
       socketInstance.disconnect();
     };
-  }, [isAuthenticated]);
+  }, []);
 
   const clearLatestOrder = () => {
     setLatestOrder(null);

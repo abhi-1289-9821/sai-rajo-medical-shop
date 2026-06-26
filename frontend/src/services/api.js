@@ -19,4 +19,22 @@ API.interceptors.request.use(
   }
 );
 
+// Interceptor to handle expired or unauthorized tokens globally
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Clear client state credentials
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_user');
+      
+      // Redirect to login if currently on a protected admin page
+      if (window.location.pathname.startsWith('/admin')) {
+        window.location.href = '/admin/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default API;

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import API from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -8,20 +9,29 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // If we have a stored token, hydrate state
-    const storedAdmin = localStorage.getItem('admin_user');
-    if (token && storedAdmin) {
-      try {
-        setAdmin(JSON.parse(storedAdmin));
-      } catch (e) {
-        // Clear corrupt state
-        localStorage.removeItem('admin_token');
-        localStorage.removeItem('admin_user');
-        setToken(null);
+    const verifySession = async () => {
+      const storedAdmin = localStorage.getItem('admin_user');
+      if (token && storedAdmin) {
+        try {
+          // Verify with backend session refresh endpoint
+          const response = await API.get('/auth/refresh');
+          if (response.data.success) {
+            localStorage.setItem('admin_token', response.data.token);
+            setToken(response.data.token);
+            setAdmin(response.data.admin);
+          } else {
+            logout();
+          }
+        } catch (err) {
+          console.error('[AuthContext] Session hydration verification failed:', err);
+          logout();
+        }
       }
-    }
-    setLoading(false);
-  }, [token]);
+      setLoading(false);
+    };
+
+    verifySession();
+  }, []);
 
   const login = (jwtToken, adminData) => {
     localStorage.setItem('admin_token', jwtToken);

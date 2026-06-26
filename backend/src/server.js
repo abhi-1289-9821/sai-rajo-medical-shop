@@ -2,6 +2,11 @@ const http = require('http');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
+if (!process.env.JWT_SECRET) {
+  console.error('CRITICAL ERROR: JWT_SECRET environment variable is missing. Server cannot start.');
+  process.exit(1);
+}
+
 const app = require('./app');
 const socketConfig = require('./config/socket');
 
