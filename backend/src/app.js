@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const path = require('path');
 const authRoutes = require('./routes/authRoutes');
 const orderRoutes = require('./routes/orderRoutes');
@@ -8,21 +9,20 @@ const errorMiddleware = require('./middleware/errorMiddleware');
 
 const app = express();
 
-// Dynamic allowed origins for development, local network, and localhost testing
+// Use helmet to secure the app by setting various HTTP headers
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+// Dynamic allowed origins
 const allowedOrigins = [
-  process.env.CLIENT_URL,
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://127.0.0.1:5173',
-  'http://127.0.0.1:5174',
-  'http://10.155.56.61:5173',
-  'http://10.155.56.61:5174'
+  process.env.CLIENT_URL
 ].filter(Boolean);
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin or matching local IP subnets
-    if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://10.155.56.')) {
+    // Allow requests with no origin or matching configured client URL
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));

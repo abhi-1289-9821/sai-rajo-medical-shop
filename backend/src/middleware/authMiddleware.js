@@ -6,11 +6,9 @@ const authMiddleware = (req, res, next) => {
   try {
     let token = null;
 
-    // Support extracting token from Authorization header or from URL query string
+    // Support extracting token strictly from Authorization header
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
       token = req.headers.authorization.split(' ')[1];
-    } else if (req.query && req.query.token) {
-      token = req.query.token;
     }
     
     if (!token) {

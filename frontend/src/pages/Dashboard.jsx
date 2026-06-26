@@ -91,6 +91,26 @@ const Dashboard = () => {
     }
   };
 
+  // Fetch prescription image securely using token header and display in a new tab via blob url
+  const viewPrescription = async (prescriptionUrl) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}${prescriptionUrl}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!response.ok) {
+        throw new Error('Failed to retrieve file from server.');
+      }
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank');
+    } catch (err) {
+      console.error('Error fetching prescription:', err);
+      alert('Unable to load prescription file securely.');
+    }
+  };
+
   // Calculations for KPI Metrics cards
   const stats = {
     total: orders.length,
@@ -286,16 +306,14 @@ const Dashboard = () => {
 
                     {/* Prescription Badge */}
                     {order.prescription_url ? (
-                      <a
-                        href={`${BACKEND_URL}${order.prescription_url}?token=${token}`}
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        onClick={() => viewPrescription(order.prescription_url)}
                         className="inline-flex items-center gap-1 px-3 py-1 bg-medical-50 text-medical-700 hover:bg-medical-100 border border-medical-100 rounded-lg text-xs font-semibold transition-colors"
                       >
                         <FileImage size={12} />
                         View Prescription
                         <Eye size={12} />
-                      </a>
+                      </button>
                     ) : (
                       <span className="text-xs text-slate-400 font-medium bg-slate-50 border border-slate-100 px-2.5 py-1 rounded-lg">
                         No Prescription
