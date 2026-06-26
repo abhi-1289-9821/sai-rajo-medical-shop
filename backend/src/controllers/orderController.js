@@ -85,17 +85,38 @@ const createOrder = async (req, res, next) => {
     // Prescription upload path setup (optional)
     let prescription_url = null;
     if (req.file) {
-      // If uploaded to Cloudinary, path contains the direct URL. Otherwise, check magic bytes and construct local path.
-      if (req.file.path.startsWith('http://') || req.file.path.startsWith('https://')) {
-        prescription_url = req.file.path;
-      } else {
-        // Validate magic bytes server-side after upload to prevent spoofed content-types (only for local uploads)
-        const magicType = verifyMagicBytes(req.file.path);
-        const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-        if (!magicType || !allowedMimeTypes.includes(magicType)) {
-          fs.unlinkSync(req.file.path); // Delete the spoofed/malicious file
-          return res.status(400).json({ success: false, message: 'Invalid file content. Spoofed file type detected.' });
+      // Validate magic bytes server-side for ALL uploads to prevent spoofed content-types before any processing or cloud storage
+      const magicType = verifyMagicBytes(req.file.path);
+      const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+      if (!magicType || !allowedMimeTypes.includes(magicType)) {
+        fs.unlinkSync(req.file.path); // Clean up the malicious file from local storage
+        return res.status(400).json({ success: false, message: 'Invalid file content. Spoofed file type detected.' });
+      }
+
+      // If Cloudinary keys are configured, upload to Cloudinary (ephemeral storage solution) and delete local copy
+      if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+        try {
+          const cloudinary = require('cloudinary'); // cloudinary version 2 SDK default import
+          cloudinary.config({
+            cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+            api_key: process.env.CLOUDINARY_API_KEY,
+            api_secret: process.env.CLOUDINARY_API_SECRET
+          });
+
+          const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+            folder: 'prescriptions',
+            resource_type: 'auto'
+          });
+
+          prescription_url = uploadResult.secure_url;
+          fs.unlinkSync(req.file.path); // Successfully uploaded, clean up local file
+        } catch (uploadError) {
+          console.error('[Cloudinary Upload Error] Failed to upload verified file:', uploadError.message);
+          fs.unlinkSync(req.file.path); // Clean up local file on failure
+          return res.status(500).json({ success: false, message: 'Failed to save prescription file to cloud storage.' });
         }
+      } else {
+        // Fallback to local server static path
         prescription_url = `/uploads/${req.file.filename}`;
       }
     }
