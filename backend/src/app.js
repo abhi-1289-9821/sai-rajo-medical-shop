@@ -15,9 +15,9 @@ app.use(helmet({
 }));
 
 // Dynamic allowed origins
-const allowedOrigins = [
-  process.env.CLIENT_URL
-].filter(Boolean);
+const allowedOrigins = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.split(',').map(url => url.trim())
+  : [];
 
 app.use(cors({
   origin: (origin, callback) => {

@@ -9,9 +9,9 @@ let io = null;
  * @param {Object} httpServer - Node HTTP server instance
  */
 function init(httpServer) {
-  const allowedOrigins = [
-    process.env.CLIENT_URL
-  ].filter(Boolean);
+  const allowedOrigins = process.env.CLIENT_URL
+    ? process.env.CLIENT_URL.split(',').map(url => url.trim())
+    : [];
 
   io = new Server(httpServer, {
     cors: {
