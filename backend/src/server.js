@@ -1,4 +1,5 @@
 const http = require('http');
+const https = require('https');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
@@ -26,4 +27,17 @@ server.listen(PORT, () => {
   console.log(` Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(` Client Access Allowed: ${process.env.CLIENT_URL || 'http://localhost:5173'}`);
   console.log(`===============================================`);
+
+  // Self-ping every 14 minutes to prevent Render free tier cold starts
+  const selfPingUrl = process.env.RENDER_EXTERNAL_URL;
+  if (selfPingUrl) {
+    setInterval(() => {
+      https.get(`${selfPingUrl}/healthz`, (res) => {
+        console.log(`[Keep-Alive] Self-ping status: ${res.statusCode}`);
+      }).on('error', (err) => {
+        console.warn(`[Keep-Alive] Self-ping failed: ${err.message}`);
+      });
+    }, 14 * 60 * 1000); // 14 minutes
+    console.log(`[Keep-Alive] Self-ping enabled for: ${selfPingUrl}`);
+  }
 });
