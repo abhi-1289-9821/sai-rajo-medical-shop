@@ -38,6 +38,11 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static prescription upload files (protected by authentication)
 app.use('/uploads', authMiddleware, express.static(path.join(__dirname, '../uploads')));
 
+// Health check endpoint for cloud platforms
+app.get('/healthz', (req, res) => {
+  res.status(200).json({ status: 'OK' });
+});
+
 // API routing
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
