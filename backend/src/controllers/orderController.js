@@ -1,8 +1,43 @@
 const db = require('../config/db');
 const socketConfig = require('../config/socket');
 const telegramBot = require('../utils/telegramBot');
+const fs = require('fs');
+const path = require('path');
 
 const { randomBytes } = require('crypto');
+
+// Helper to verify magic bytes for uploaded local files
+function verifyMagicBytes(filePath) {
+  try {
+    const buffer = Buffer.alloc(12);
+    const fd = fs.openSync(filePath, 'r');
+    fs.readSync(fd, buffer, 0, 12, 0);
+    fs.closeSync(fd);
+
+    // PNG signature: 89 50 4E 47
+    if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
+      return 'image/png';
+    }
+    // JPEG signature: FF D8 FF
+    if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
+      return 'image/jpeg';
+    }
+    // PDF signature: %PDF (25 50 44 46)
+    if (buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46) {
+      return 'application/pdf';
+    }
+    // WEBP signature: Starts with 'RIFF' (52 49 46 46) and 'WEBP' (57 45 42 50) at offset 8
+    if (
+      buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+      buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50
+    ) {
+      return 'image/webp';
+    }
+  } catch (error) {
+    console.error('[Magic Bytes Verification] Error reading file:', error.message);
+  }
+  return null;
+}
 
 /**
  * Generate a unique order number (e.g., MED-YYYYMMDD-XXXXXX)
@@ -33,6 +68,13 @@ const createOrder = async (req, res, next) => {
     if (!phone || !phone.trim()) {
       return res.status(400).json({ success: false, message: 'Phone number is required.' });
     }
+    
+    // Validate phone format (Indian number rules: optional +91, spaces/dashes stripped, starts with 6-9 and has 10 digits)
+    const phoneRegex = /^(\+91[\s-]?)?[6-9]\d{9}$/;
+    if (!phoneRegex.test(phone.trim().replace(/[\s-]/g, ''))) {
+      return res.status(400).json({ success: false, message: 'Invalid Indian phone number format. Must be 10 digits.' });
+    }
+
     if (!address || !address.trim()) {
       return res.status(400).json({ success: false, message: 'Full address is required.' });
     }
@@ -43,8 +85,19 @@ const createOrder = async (req, res, next) => {
     // Prescription upload path setup (optional)
     let prescription_url = null;
     if (req.file) {
-      // Save path relative to root to serve statically
-      prescription_url = `/uploads/${req.file.filename}`;
+      // If uploaded to Cloudinary, path contains the direct URL. Otherwise, check magic bytes and construct local path.
+      if (req.file.path.startsWith('http://') || req.file.path.startsWith('https://')) {
+        prescription_url = req.file.path;
+      } else {
+        // Validate magic bytes server-side after upload to prevent spoofed content-types (only for local uploads)
+        const magicType = verifyMagicBytes(req.file.path);
+        const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+        if (!magicType || !allowedMimeTypes.includes(magicType)) {
+          fs.unlinkSync(req.file.path); // Delete the spoofed/malicious file
+          return res.status(400).json({ success: false, message: 'Invalid file content. Spoofed file type detected.' });
+        }
+        prescription_url = `/uploads/${req.file.filename}`;
+      }
     }
 
     const order_number = generateOrderNumber();
@@ -142,10 +195,8 @@ const updateOrderStatus = async (req, res, next) => {
     const updatedOrders = await db.query('SELECT * FROM orders WHERE id = ?', [id]);
     const updatedOrder = updatedOrders[0];
 
-    // If order reaches a terminal status (delivered or rejected), clean up prescription file
-    if (['rejected', 'delivered'].includes(status) && orders[0].prescription_url) {
-      const fs = require('fs');
-      const path = require('path');
+    // If order reaches a terminal status (delivered or rejected), clean up local prescription file
+    if (['rejected', 'delivered'].includes(status) && orders[0].prescription_url && orders[0].prescription_url.startsWith('/uploads')) {
       const filePath = path.join(__dirname, '../../', orders[0].prescription_url);
       fs.unlink(filePath, (err) => {
         if (err) {
