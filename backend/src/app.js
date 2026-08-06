@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const path = require('path');
 const authRoutes = require('./routes/authRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const chatbotRoutes = require('./routes/chatbotRoutes');
 const authMiddleware = require('./middleware/authMiddleware');
 const errorMiddleware = require('./middleware/errorMiddleware');
 
@@ -46,6 +47,7 @@ app.get('/healthz', (req, res) => {
 // API routing
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/chatbot', chatbotRoutes);
 
 // Fallback Route for non-existent API endpoints
 app.use('*', (req, res) => {
