@@ -5,10 +5,11 @@
 ![Platform](https://img.shields.io/badge/Platform-Web-blue?style=for-the-badge)
 ![Frontend](https://img.shields.io/badge/Frontend-React%20%2B%20Vite-61DAFB?style=for-the-badge&logo=react)
 ![Backend](https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-339933?style=for-the-badge&logo=node.js)
+![AI Assistant](https://img.shields.io/badge/AI%20Assistant-Google%20Gemini-8E44AD?style=for-the-badge&logo=google)
 ![Database](https://img.shields.io/badge/Database-MySQL-4479A1?style=for-the-badge&logo=mysql)
 ![Deployed](https://img.shields.io/badge/Status-Live-brightgreen?style=for-the-badge)
 
-**A full-stack web application for a local medical store that allows customers to place medicine orders online with real-time order tracking and admin management.**
+**A full-stack web application for a local medical store that allows customers to place medicine orders online with real-time order tracking, an intelligent Google Gemini AI Assistant chatbot, and admin order management.**
 
 [🌐 Live Demo](https://sai-rajo-medical-shop.vercel.app) • [📦 Backend API](https://sai-rajo-backend.onrender.com/healthz) • [📁 Repository](https://github.com/abhi-1289-9821/sai-rajo-medical-shop)
 
@@ -18,9 +19,9 @@
 
 ## 📸 Screenshots
 
-| Customer Order Page | Admin Dashboard |
+| Customer Order Page & AI Assistant | Admin Dashboard |
 |---|---|
-| Customers fill name, phone, address, medicines | Admin views and manages all orders in real-time |
+| Customers fill name, phone, address, medicines & chat with 24/7 Gemini AI Assistant | Admin views and manages all orders in real-time |
 
 ---
 
@@ -31,6 +32,12 @@
 - 📎 **Upload Prescription** — Attach prescription image (JPG, PNG, PDF, WEBP)
 - 🔍 **Track Order Status** — Check order status using order number + phone number
 - ⚡ **Real-Time Updates** — Order status updates pushed live via WebSocket (no page refresh needed)
+
+### 🤖 AI Assistant Chatbot (Google Gemini Integration)
+- 💬 **24/7 Interactive AI Helper** — Powered by `@google/genai` (`gemini-flash-latest` model)
+- 🏥 **Store & Product Guidance** — Assists customers with available categories (Medicines, Personal Care, Healthcare, Baby Care, Medical Devices, Ayurvedic Products, Supplements), store location, hours, offers, and ordering steps
+- 🛡️ **Strict Medical Safety Guardrails** — Enforces strict safety rules prohibiting medical diagnosis or prescription drug dosage advice, automatically advising users to consult qualified doctors for severe or emergency conditions
+- ⚡ **Graceful Offline Fallback** — Includes intelligent rule-based fallback responses when offline or when API key is unconfigured
 
 ### 🛠️ Admin Side
 - 🔐 **Secure Login** — JWT-based authentication for admin access
@@ -44,7 +51,7 @@
 - Magic byte file validation (prevents spoofed file type attacks)
 - SQL injection prevention via parameterized queries
 - Helmet.js for secure HTTP headers
-- Rate limiting on API endpoints
+- Rate limiting on API endpoints (including dedicated chatbot rate limiting)
 - CORS whitelist restricted to known origins
 
 ---
@@ -61,11 +68,13 @@
 | **Axios** | HTTP API requests |
 | **Tailwind CSS** | Utility-first styling |
 | **Lucide React** | Icon library |
+| **AI Chatbot Component** | Interactive floating AI assistant UI |
 
 ### Backend
 | Technology | Purpose |
 |---|---|
 | **Node.js + Express** | REST API server |
+| **Google Gemini AI SDK** | `@google/genai` for AI chatbot responses |
 | **Socket.IO** | Real-time bidirectional events |
 | **MySQL2** | Database driver with connection pooling |
 | **JWT (jsonwebtoken)** | Stateless authentication |
@@ -73,7 +82,7 @@
 | **Cloudinary** | Cloud image storage |
 | **Bcryptjs** | Password hashing |
 | **Helmet** | HTTP security headers |
-| **express-rate-limit** | API rate limiting |
+| **express-rate-limit** | API rate limiting & Chatbot spam protection |
 | **Telegram Bot API** | Order push notifications |
 
 ### Infrastructure (100% Free)
@@ -83,6 +92,7 @@
 | **Render** | Backend hosting |
 | **Aiven** | Managed MySQL database |
 | **Cloudinary** | Prescription image storage |
+| **Google Gemini API** | AI Chatbot engine |
 | **GitHub** | Source control & CI/CD |
 
 ---
@@ -93,6 +103,9 @@
 ┌─────────────────────────────────────────────────────┐
 │                  Customer Browser                   │
 │            React + Vite (Vercel CDN)                │
+│  ┌──────────────────────────────────────────────┐   │
+│  │   Order Form • Live Tracker • AI Chatbot     │   │
+│  └──────────────────────────────────────────────┘   │
 └───────────────────────┬─────────────────────────────┘
                         │ HTTPS REST + WebSocket
                         ▼
@@ -100,19 +113,20 @@
 │          Node.js + Express Backend (Render)         │
 │  ┌─────────────┐  ┌──────────┐  ┌───────────────┐  │
 │  │  REST API   │  │ Socket.IO│  │  Telegram Bot │  │
-│  │  /api/auth  │  │  Server  │  │  Notifications│  │
-│  │  /api/orders│  │          │  │               │  │
-│  └──────┬──────┘  └──────────┘  └───────────────┘  │
+│  │ /api/auth   │  │  Server  │  │ Notifications │  │
+│  │ /api/orders │  └──────────┘  └───────────────┘  │
+│  │ /api/chatbot│                                    │
+│  └──────┬──────┘                                    │
 │         │                                           │
-│  ┌──────▼──────────────────────┐                   │
-│  │     MySQL Connection Pool   │                   │
-│  └──────┬──────────────────────┘                   │
-└─────────┼───────────────────────────────────────────┘
-          │
-    ┌─────▼──────┐      ┌─────────────┐
-    │   Aiven    │      │  Cloudinary │
-    │   MySQL    │      │  (Images)   │
-    └────────────┘      └─────────────┘
+│  ┌──────▼──────────────────────┐                    │
+│  │     MySQL Connection Pool   │                    │
+│  └──────┬──────────────────────┘                    │
+└─────────┼───────────────────┬───────────────────────┘
+          │                   │
+    ┌─────▼──────┐      ┌─────▼──────┐      ┌─────────────┐
+    │   Aiven    │      │   Google   │      │  Cloudinary │
+    │   MySQL    │      │  Gemini AI │      │  (Images)   │
+    └────────────┘      └────────────┘      └─────────────┘
 ```
 
 ---
@@ -135,7 +149,7 @@ cd sai-rajo-medical-shop
 cd backend
 npm install
 cp .env.example .env
-# Fill in your .env values (DB credentials, JWT secret, etc.)
+# Fill in your .env values (DB credentials, JWT secret, GEMINI_API_KEY, etc.)
 npm run seed      # Creates DB tables and default admin user
 npm run dev       # Starts backend on http://localhost:5000
 ```
@@ -169,6 +183,9 @@ CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 TELEGRAM_BOT_TOKEN=your_bot_token
 TELEGRAM_CHAT_ID=your_chat_id
+
+# Google Gemini API Key for AI Assistant Chatbot
+GEMINI_API_KEY=your_google_gemini_api_key
 ```
 
 ### Frontend (`frontend/.env`)
@@ -194,6 +211,11 @@ VITE_WS_URL=http://localhost:5000
 | `PATCH` | `/api/orders/:id/status` | Update order status | ✅ Admin |
 | `GET` | `/api/orders/:order_number` | Track order by number + phone | ❌ |
 
+### AI Assistant Chatbot
+| Method | Endpoint | Description | Auth Required | Rate Limited |
+|---|---|---|---|---|
+| `POST` | `/api/chatbot/chat` | Chat with AI Assistant (Google Gemini) | ❌ | ✅ 20 req/min |
+
 ### System
 | Method | Endpoint | Description |
 |---|---|---|
@@ -214,12 +236,14 @@ sai-rajo-medical-shop/
 │   │   │   └── socket.js      # Socket.IO configuration
 │   │   ├── controllers/
 │   │   │   ├── authController.js
+│   │   │   ├── chatbotController.js # Google Gemini AI Chatbot logic
 │   │   │   └── orderController.js
 │   │   ├── middleware/
 │   │   │   ├── authMiddleware.js   # JWT verification
 │   │   │   └── errorMiddleware.js
 │   │   ├── routes/
 │   │   │   ├── authRoutes.js
+│   │   │   ├── chatbotRoutes.js     # AI Chatbot endpoint
 │   │   │   └── orderRoutes.js
 │   │   ├── utils/
 │   │   │   └── telegramBot.js
@@ -230,13 +254,14 @@ sai-rajo-medical-shop/
 └── frontend/
     ├── src/
     │   ├── components/
+    │   │   ├── AIChatbot.jsx          # Interactive AI Assistant UI
     │   │   ├── NotificationPopup.jsx  # Real-time order alert
     │   │   └── ProtectedRoute.jsx     # Auth guard
     │   ├── context/
     │   │   ├── AuthContext.jsx         # JWT auth state
     │   │   └── SocketContext.jsx       # WebSocket connection
     │   ├── pages/
-    │   │   ├── Home.jsx        # Customer order form
+    │   │   ├── Home.jsx        # Customer order form + AI Assistant
     │   │   ├── Login.jsx       # Admin login
     │   │   └── Dashboard.jsx   # Admin order management
     │   └── main.jsx
@@ -260,6 +285,7 @@ This project is deployed entirely for **free** using:
 2. **Backend** → [Render](https://render.com) — Free Node.js hosting
 3. **Frontend** → [Vercel](https://vercel.com) — Free static hosting
 4. **Images** → [Cloudinary](https://cloudinary.com) — Free image CDN
+5. **AI Chatbot** → [Google AI Studio](https://aistudio.google.com) — Free Gemini API key
 
 ---
 
@@ -288,5 +314,5 @@ This project is built for **Sai Rajo Medical Shop** as a real-world business sol
 ---
 
 <div align="center">
-  Built with ❤️ | Full-Stack Web Application | React + Node.js + MySQL
+  Built with ❤️ | Full-Stack Web Application | React + Node.js + Google Gemini AI + MySQL
 </div>
