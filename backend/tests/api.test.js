@@ -90,4 +90,33 @@ describe('API Tests', () => {
       expect(res.body.order.status).toBe('accepted');
     });
   });
+
+  describe('POST /api/chatbot/chat', () => {
+    it('should return 400 if message is missing', async () => {
+      const res = await request(app)
+        .post('/api/chatbot/chat')
+        .send({});
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('should return chatbot response using fallback when API key is not configured', async () => {
+      const originalKey = process.env.GEMINI_API_KEY;
+      delete process.env.GEMINI_API_KEY;
+      try {
+        const res = await request(app)
+          .post('/api/chatbot/chat')
+          .send({ message: 'Do you sell Dolo 650?' });
+
+        expect(res.statusCode).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.reply).toBeDefined();
+        expect(res.body.reply).toContain('Dolo 650');
+      } finally {
+        if (originalKey) process.env.GEMINI_API_KEY = originalKey;
+      }
+    });
+  });
 });
+
