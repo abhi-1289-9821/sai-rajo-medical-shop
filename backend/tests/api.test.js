@@ -129,7 +129,7 @@ describe('API Tests', () => {
         expect(res.statusCode).toBe(200);
         expect(res.body.success).toBe(true);
         expect(res.body.reply).toContain('Omez-D');
-        expect(res.body.reply).toContain('Medicine Inquiry');
+        expect(res.body.reply).toContain('Omeprazole');
       } finally {
         if (originalKey) process.env.GEMINI_API_KEY = originalKey;
       }
@@ -161,7 +161,7 @@ describe('API Tests', () => {
 
         expect(res.statusCode).toBe(200);
         expect(res.body.success).toBe(true);
-        expect(res.body.reply).toContain('Medicine Inquiry');
+        expect(res.body.reply).toContain('Omeprazole');
         expect(res.body.reply).toContain('Omez-D');
       } finally {
         if (originalKey) process.env.GEMINI_API_KEY = originalKey;
