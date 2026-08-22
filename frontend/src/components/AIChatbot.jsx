@@ -88,7 +88,7 @@ const AIChatbot = () => {
       const errorMsg = {
         id: (Date.now() + 1).toString(),
         role: 'model',
-        text: serverMsg || "I'm having trouble connecting right now. Please try again in a moment, or call our pharmacists directly at **+91 8127152715** or **+91 9565187777**.",
+        text: serverMsg || "I'm temporarily unable to reply. Please try again in a moment, or contact the shop directly at **+91 8127152715**.",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages((prev) => [...prev, errorMsg]);
