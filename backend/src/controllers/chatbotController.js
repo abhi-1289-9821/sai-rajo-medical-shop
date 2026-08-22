@@ -144,15 +144,25 @@ function generateFallbackResponse(userMessage) {
     'yes', 'no', 'bye', 'goodbye', 'help', 'info', 'what', 'why', 'how', 'where', 'who', 'is', 'are'
   ];
 
+  const conversationalWords = ['suggest', 'recommend', 'sickness', 'illness', 'disease', 'feeling', 'symptom', 'problem', 'what', 'why', 'how', 'which'];
+  const isConversational = conversationalWords.some(w => lower.includes(w));
+
   const isShortQuery = userMessage.trim().length >= 2 && 
-    userMessage.trim().length <= 50 && 
-    !nonMedicineWords.includes(lower);
+    userMessage.trim().length <= 30 && 
+    userMessage.trim().split(/\s+/).length <= 2 && 
+    !nonMedicineWords.includes(lower) &&
+    !isConversational;
 
   if (matchedMed || lower.includes('medicine') || lower.includes('tablet') || lower.includes('capsule') || lower.includes('syrup') || isShortQuery) {
     const rawName = matchedMed || userMessage.trim().replace(/^['"\s]+|['"\s]+$/g, '');
     const medLabel = rawName.split(/[\s-]+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join('-');
     
     return `💊 **Medicine Inquiry**: Yes! **${medLabel}** is available at **Sai Rajo Medical Shop**!\n\nYou can order it directly on our website with **20% DISCOUNT** and **Free Doorstep Delivery**.\n\n**How to Order**:\n1. Fill in your Name, Phone, and Delivery Address on our home page.\n2. Add **${medLabel}** and the required quantity in the medicine list.\n3. (Optional) Upload your prescription if required.\n4. Click **Submit Order**!`;
+  }
+
+  // Conversational questions / symptom advice fallback
+  if (isConversational) {
+    return "🏥 **Sai Rajo Medical Shop Assistant**:\n\nFor health symptoms or sickness, we always recommend consulting a qualified doctor for accurate medical guidance.\n\nAt **Sai Rajo Medical Shop**, we stock authentic medicines, healthcare items, ayurvedic products, and supplements with **20% DISCOUNT** and **Free Doorstep Delivery**!\n\nIf you know the specific medicine or product you need, tell me its name or place your order directly on our home page!";
   }
 
   // Product categories list query
@@ -202,11 +212,8 @@ function generateFallbackResponse(userMessage) {
     return "🎉 **Special Local Offers**:\n\n- **20% DISCOUNT** on all medicine orders submitted today!\n- **FREE Doorstep Delivery** on all orders with no minimum order value.\nPlace your order directly on our website for fast home delivery!";
   }
 
-  // Clean Medicine & Product Inquiry Fallback (replaces old awkward boilerplate text)
-  const cleanInput = userMessage.trim().replace(/^['"\s]+|['"\s]+$/g, '');
-  const formattedInput = cleanInput.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-
-  return `💊 **Medicine Inquiry**: Yes! **${formattedInput}** is available at **Sai Rajo Medical Shop**!\n\nYou can order it directly on our website with **20% DISCOUNT** and **Free Doorstep Delivery**.\n\n**How to Order**:\n1. Fill in your Name, Phone, and Delivery Address on our home page.\n2. Add **${formattedInput}** and the required quantity in the medicine list.\n3. (Optional) Upload your prescription if required.\n4. Click **Submit Order**!`;
+  // Clean General Inquiry Fallback
+  return `🛍️ **Sai Rajo Medical Shop Assistant**:\n\nYes! We stock a complete inventory of medicines, baby care products, personal care items, medical devices, ayurvedic products, and supplements!\n\nTo order **"${userMessage.trim()}"**, simply fill out your name, phone, address, and item list on our home page. Our pharmacists will fulfill your order with **20% DISCOUNT** and **Free Doorstep Delivery**!`;
 }
 
 /**
