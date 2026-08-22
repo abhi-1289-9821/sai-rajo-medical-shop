@@ -101,72 +101,49 @@ describe('API Tests', () => {
       expect(res.body.success).toBe(false);
     });
 
-    it('should return chatbot response using fallback when API key is not configured', async () => {
+    it('should return 400 if message is empty string', async () => {
+      const res = await request(app)
+        .post('/api/chatbot/chat')
+        .send({ message: '   ' });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('should return 503 when GEMINI_API_KEY is not configured', async () => {
       const originalKey = process.env.GEMINI_API_KEY;
       delete process.env.GEMINI_API_KEY;
       try {
         const res = await request(app)
           .post('/api/chatbot/chat')
-          .send({ message: 'Do you sell Dolo 650?' });
+          .send({ message: 'What medicines do you sell?' });
 
-        expect(res.statusCode).toBe(200);
-        expect(res.body.success).toBe(true);
-        expect(res.body.reply).toBeDefined();
-        expect(res.body.reply).toContain('Dolo 650');
+        expect(res.statusCode).toBe(503);
+        expect(res.body.success).toBe(false);
+        expect(res.body.message).toBeDefined();
       } finally {
         if (originalKey) process.env.GEMINI_API_KEY = originalKey;
       }
     });
 
-    it('should return specific medicine inquiry response for omez-d', async () => {
-      const originalKey = process.env.GEMINI_API_KEY;
-      delete process.env.GEMINI_API_KEY;
-      try {
-        const res = await request(app)
-          .post('/api/chatbot/chat')
-          .send({ message: 'omez-d' });
+    it('should return emergency reply immediately for emergency symptoms without calling Gemini', async () => {
+      const res = await request(app)
+        .post('/api/chatbot/chat')
+        .send({ message: 'I have severe chest pain and cannot breathe' });
 
-        expect(res.statusCode).toBe(200);
-        expect(res.body.success).toBe(true);
-        expect(res.body.reply).toContain('Omez-D');
-        expect(res.body.reply).toContain('Omeprazole');
-      } finally {
-        if (originalKey) process.env.GEMINI_API_KEY = originalKey;
-      }
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.reply).toMatch(/urgent|emergency|medical care/i);
     });
 
-    it('should return a welcoming greeting response for hii', async () => {
-      const originalKey = process.env.GEMINI_API_KEY;
-      delete process.env.GEMINI_API_KEY;
-      try {
-        const res = await request(app)
-          .post('/api/chatbot/chat')
-          .send({ message: 'hii' });
+    it('should return emergency reply for anaphylaxis', async () => {
+      const res = await request(app)
+        .post('/api/chatbot/chat')
+        .send({ message: 'my lips are swelling and I have anaphylaxis' });
 
-        expect(res.statusCode).toBe(200);
-        expect(res.body.success).toBe(true);
-        expect(res.body.reply).toContain('Hello! Welcome to Sai Rajo Medical Shop');
-      } finally {
-        if (originalKey) process.env.GEMINI_API_KEY = originalKey;
-      }
-    });
-
-    it('should return specific medicine inquiry response for omezd without hyphen', async () => {
-      const originalKey = process.env.GEMINI_API_KEY;
-      delete process.env.GEMINI_API_KEY;
-      try {
-        const res = await request(app)
-          .post('/api/chatbot/chat')
-          .send({ message: 'omezd' });
-
-        expect(res.statusCode).toBe(200);
-        expect(res.body.success).toBe(true);
-        expect(res.body.reply).toContain('Omeprazole');
-        expect(res.body.reply).toContain('Omez-D');
-      } finally {
-        if (originalKey) process.env.GEMINI_API_KEY = originalKey;
-      }
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.reply).toMatch(/urgent|emergency|medical care/i);
     });
   });
 });
-

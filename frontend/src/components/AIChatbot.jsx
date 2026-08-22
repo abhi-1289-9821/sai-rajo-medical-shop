@@ -78,20 +78,24 @@ const AIChatbot = () => {
         };
         setMessages((prev) => [...prev, botMsg]);
       } else {
+        // Surface the server's own error message when available
         throw new Error(res.data?.message || 'Failed to get response');
       }
     } catch (err) {
       console.error('[Chatbot Error]:', err);
+      // Prefer the server's message (e.g. 503 retry message) over the generic fallback
+      const serverMsg = err.response?.data?.message;
       const errorMsg = {
         id: (Date.now() + 1).toString(),
         role: 'model',
-        text: "I am having trouble connecting right now. Please try asking again or feel free to call our pharmacists directly at **+91 8127152715** or **+91 9565187777**.",
+        text: serverMsg || "I'm having trouble connecting right now. Please try again in a moment, or call our pharmacists directly at **+91 8127152715** or **+91 9565187777**.",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
     }
+
   };
 
   const handleKeyDown = (e) => {
