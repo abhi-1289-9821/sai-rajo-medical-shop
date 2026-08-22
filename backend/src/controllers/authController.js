@@ -55,6 +55,14 @@ const login = async (req, res, next) => {
       { expiresIn: '24h' }
     );
 
+    // Set httpOnly cookie for secure auth
+    res.cookie('admin_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000
+    });
+
     // Return response with credentials
     return res.status(200).json({
       success: true,
@@ -77,6 +85,21 @@ const refresh = async (req, res, next) => {
   try {
     const admin = req.admin; // Injected by authMiddleware
 
+    // Verify admin user still exists in DB (revocation/validity check)
+    const admins = await db.query(
+      'SELECT id, username FROM admins WHERE id = ? LIMIT 1',
+      [admin.id]
+    );
+
+    if (admins.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: 'Admin user no longer exists or session revoked.'
+      });
+    }
+
+    const currentAdmin = admins[0];
+
     // Issue a new token
     const secret = process.env.JWT_SECRET;
     if (!secret) {
@@ -84,22 +107,48 @@ const refresh = async (req, res, next) => {
     }
 
     const newToken = jwt.sign(
-      { id: admin.id, username: admin.username },
+      { id: currentAdmin.id, username: currentAdmin.username },
       secret,
       { expiresIn: '24h' }
     );
 
+    res.cookie('admin_token', newToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000
+    });
+
     return res.status(200).json({
       success: true,
       token: newToken,
-      admin
+      admin: {
+        id: currentAdmin.id,
+        username: currentAdmin.username
+      }
     });
   } catch (error) {
     next(error);
   }
 };
 
+/**
+ * Admin logout: clears authentication cookie
+ */
+const logout = async (req, res) => {
+  res.clearCookie('admin_token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
+  });
+  return res.status(200).json({
+    success: true,
+    message: 'Logged out successfully.'
+  });
+};
+
 module.exports = {
   login,
-  refresh
+  refresh,
+  logout
 };

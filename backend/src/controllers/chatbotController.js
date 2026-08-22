@@ -34,7 +34,7 @@ STRICT GUARDRAILS & RULES:
 function generateFallbackResponse(userMessage) {
   const lower = userMessage.toLowerCase().trim();
 
-  // Guardrail check 1: Diagnosis or severe symptom check
+  // Safety Guardrail 1: Diagnosis or severe symptom check (Highest Priority)
   if (
     lower.includes('diagnose') || 
     lower.includes('chest pain') || 
@@ -48,7 +48,7 @@ function generateFallbackResponse(userMessage) {
     return "⚠️ **Medical Advisory**: I am an AI assistant for Sai Rajo Medical Shop and cannot diagnose diseases or medical conditions. For serious or severe symptoms, please consult a qualified doctor or emergency medical service immediately.";
   }
 
-  // Guardrail check 2: Prescription / Dosage advice
+  // Safety Guardrail 2: Prescription / Dosage advice
   if (
     lower.includes('prescribe') || 
     lower.includes('antibiotic dosage') || 
@@ -58,98 +58,101 @@ function generateFallbackResponse(userMessage) {
     return "💊 **Prescription Policy**: I cannot prescribe prescription medicines or determine prescription medication dosages. For prescription drugs, please consult your healthcare provider. Once you have a valid prescription, you can upload it on our website to order your medicines easily!";
   }
 
-  // What is Dolo 650 / Paracetamol explanation
+  // Greeting check
+  const greetings = ['hi', 'hii', 'hiii', 'hello', 'helo', 'hey', 'heyy', 'good morning', 'good afternoon', 'good evening', 'namaste', 'greetings', 'start', 'help'];
+  if (greetings.includes(lower)) {
+    return "👋 **Hello! Welcome to Sai Rajo Medical Shop!**\n\nI am your 24/7 AI Assistant. How can I help you today?\n\n- 💊 **Medicines** (20% OFF + Free Doorstep Delivery)\n- 👶 **Baby Care Products**\n- 🌡️ **Medical Devices**\n- 🧴 **Personal Care & Supplements**\n- 📝 **Order Placement & Prescription Upload**\n\nFeel free to ask about any medicine, product category, store location, or ordering instructions!";
+  }
+
+  // Thanks / Closing check
+  const thanks = ['thanks', 'thank you', 'thx', 'thanku', 'dhanyawad', 'ok', 'okay', 'bye', 'goodbye'];
+  if (thanks.includes(lower)) {
+    return "🙏 **You're welcome!** Thank you for choosing **Sai Rajo Medical Shop**. We are happy to assist you with all your medicine and healthcare needs. Have a great day! 😊";
+  }
+
+  // Specific Medicine Name check (Dolo, Paracetamol, etc.)
   if (lower.includes('dolo') || lower.includes('paracetamol') || lower.includes('crocin')) {
     return "💊 **Dolo 650 (Paracetamol 650mg)**:\n\n**Dolo 650** is a popular medicine containing **Paracetamol (650mg)** used for:\n- 🌡️ Lowering body temperature during fever\n- 🤕 Relieving mild to moderate pain (headaches, body aches, toothaches)\n\n**Availability at Sai Rajo Medical Shop**:\nIt is available in our store with **20% DISCOUNT** and **Free Doorstep Delivery**!\n\n⚠️ *Disclaimer: Always follow doctor's advice or label instructions. For persistent fever (>3 days), consult a doctor.*";
   }
 
-  // Specific Medicine Query (Pantocid, Azithromycin, Cough syrup, etc.)
-  const commonMeds = ['pantocid', 'azithromycin', 'combiflam', 'dispirin', 'gelusil', 'digene', 'vicks', 'cough syrup', 'saridon', 'aspirin', 'zinetac', 'allegra', 'sinarest', 'cetirizine', 'pain killer', 'fever medicine'];
-  const matchedMed = commonMeds.find(med => lower.includes(med));
+  // Specific Category Scored Matching Engine
+  const categoryRules = [
+    {
+      id: 'baby_care',
+      keywords: ['baby care', 'baby', 'diaper', 'wipes', 'baby lotion', 'cerelac', 'johnson', 'pampers', 'huggies'],
+      response: "👶 **Baby Care Category**: Yes! We stock a complete range of authentic **Baby Care** products at **Sai Rajo Medical Shop**, including:\n- Diapers & Baby Wipes (Pampers, Huggies, MamyPoko)\n- Baby Skincare (Lotion, Cream, Powder, Gentle Soap)\n- Baby Nutrition (Cerelac, Formula Milk)\n- Baby Feeding Accessories\n\nYou can order baby care items directly on our homepage with **Free Doorstep Delivery**!"
+    },
+    {
+      id: 'medical_devices',
+      keywords: ['medical device', 'device', 'bp monitor', 'glucometer', 'sugar testing', 'oximeter', 'nebulizer', 'heating pad'],
+      response: "🌡️ **Medical Devices**: We sell digital Blood Pressure monitors, Blood Glucose (Sugar) testing meters & strips, Pulse Oximeters, Nebulizers, Digital Thermometers, and Heating Pads. Place an order on our homepage for fast delivery!"
+    },
+    {
+      id: 'ayurvedic',
+      keywords: ['ayurvedic', 'ayurveda', 'herbal', 'chyawanprash', 'dabur', 'zandu', 'patanjali'],
+      response: "🌿 **Ayurvedic Products**: We carry genuine Ayurvedic products including Dabur Chyawanprash, Ayurvedic herbal oils, immunity boosters, and natural remedies at **Sai Rajo Medical Shop**."
+    },
+    {
+      id: 'supplements',
+      keywords: ['supplement', 'protein', 'multivitamin', 'vitamin', 'calcium', 'omega 3'],
+      response: "🏋️ **Health & Nutrition Supplements**: We supply multivitamins, calcium & Vitamin D3 supplements, protein powders, Vitamin C, and Omega-3 fish oil capsules. Order online on our homepage with **20% OFF**!"
+    },
+    {
+      id: 'personal_care',
+      keywords: ['personal care', 'soap', 'shampoo', 'face wash', 'lotion', 'toothpaste', 'hygiene', 'skin care'],
+      response: "🧴 **Personal Care Category**: Yes! We offer top personal care brands covering skincare, hair care (shampoos/conditioners), body soaps, oral care (toothpaste/toothbrushes), and personal hygiene products. Add your items in our order form to get **Free Doorstep Delivery**!"
+    },
+    {
+      id: 'healthcare',
+      keywords: ['healthcare', 'first aid', 'bandage', 'dettol', 'cotton', 'antiseptic', 'thermometer'],
+      response: "🩺 **Healthcare Essentials**: We stock first aid kits, bandages, antiseptic liquids (Dettol/Savlon), medical cotton, thermometers, and daily healthcare supplies at Sai Rajo Medical Shop."
+    }
+  ];
 
-  if (matchedMed || lower.includes('medicine') || lower.includes('tablet') || lower.includes('capsule') || lower.includes('syrup')) {
-    const medLabel = matchedMed ? (matchedMed.charAt(0).toUpperCase() + matchedMed.slice(1)) : 'your requested medicine';
+  // Score each category based on keyword matches
+  let bestMatch = null;
+  let highestScore = 0;
+
+  for (const rule of categoryRules) {
+    const score = rule.keywords.reduce((acc, kw) => acc + (lower.includes(kw) ? kw.length : 0), 0);
+    if (score > highestScore) {
+      highestScore = score;
+      bestMatch = rule;
+    }
+  }
+
+  if (bestMatch && highestScore > 0) {
+    return bestMatch.response;
+  }
+
+  // Specific named medicines fallback (expanded with popular Indian pharmacy items including Omez-D)
+  const commonMeds = [
+    'omez-d', 'omez', 'omeprazole', 'pantocid', 'pan-40', 'pan 40', 'pantoprazole', 'azithromycin', 
+    'combiflam', 'dispirin', 'gelusil', 'digene', 'vicks', 'cough syrup', 'saridon', 'aspirin', 
+    'zinetac', 'allegra', 'sinarest', 'cetirizine', 'pain killer', 'fever medicine', 'calpol', 
+    'crocin', 'dolo', 'montair', 'amoxyclav', 'augmentin', 'metformin', 'telma', 'atorvas', 
+    'aciloc', 'rantac', 'pantodac', 'liv52', 'shelcal', 'ecosprin', 'limcee', 'becosules', 'citralka', 'evion'
+  ];
+
+  const cleanLower = lower.replace(/[-_]/g, ' ');
+  const matchedMed = commonMeds.find(med => lower.includes(med) || cleanLower.includes(med.replace(/[-_]/g, ' ')));
+
+  // Exclude common greetings, filler words, and question words from short medicine detection
+  const nonMedicineWords = [
+    'hi', 'hii', 'hiii', 'hello', 'helo', 'hey', 'heyy', 'thanks', 'thank you', 'ok', 'okay', 
+    'yes', 'no', 'bye', 'goodbye', 'help', 'info', 'what', 'why', 'how', 'where', 'who', 'is', 'are'
+  ];
+
+  const isShortQuery = userMessage.trim().length >= 3 && 
+    userMessage.trim().length <= 40 && 
+    userMessage.trim().split(/\s+/).length <= 5 && 
+    !nonMedicineWords.includes(lower);
+
+  if (matchedMed || lower.includes('medicine') || lower.includes('tablet') || lower.includes('capsule') || lower.includes('syrup') || isShortQuery) {
+    const rawName = matchedMed || userMessage.trim().replace(/^['"\s]+|['"\s]+$/g, '');
+    const medLabel = rawName.split(/[\s-]+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join('-');
+    
     return `💊 **Medicine Inquiry**: Yes! **${medLabel}** is available at **Sai Rajo Medical Shop**!\n\nYou can order it directly on our website with **20% DISCOUNT** and **Free Doorstep Delivery**.\n\n**How to Order**:\n1. Fill in your Name, Phone, and Delivery Address on our home page.\n2. Add **${medLabel}** and the required quantity in the medicine list.\n3. (Optional) Upload your prescription if required.\n4. Click **Submit Order**!`;
-  }
-
-  // Baby Care category query
-  if (
-    lower.includes('baby care') || 
-    lower.includes('baby') || 
-    lower.includes('diaper') || 
-    lower.includes('wipes') || 
-    lower.includes('baby lotion') || 
-    lower.includes('cerelac') ||
-    lower.includes('johnson') ||
-    lower.includes('pampers')
-  ) {
-    return "👶 **Baby Care Category**: Yes! We stock a complete range of authentic **Baby Care** products at **Sai Rajo Medical Shop**, including:\n- Diapers & Baby Wipes (Pampers, Huggies, MamyPoko)\n- Baby Skincare (Lotion, Cream, Powder, Gentle Soap)\n- Baby Nutrition (Cerelac, Formula Milk)\n- Baby Feeding Accessories\n\nYou can order baby care items directly on our homepage with **Free Doorstep Delivery**!";
-  }
-
-  // Personal Care category query
-  if (
-    lower.includes('personal care') || 
-    lower.includes('soap') || 
-    lower.includes('shampoo') || 
-    lower.includes('face wash') || 
-    lower.includes('lotion') || 
-    lower.includes('toothpaste') ||
-    lower.includes('hygiene') ||
-    lower.includes('skin care')
-  ) {
-    return "🧴 **Personal Care Category**: Yes! We offer top personal care brands covering skincare, hair care (shampoos/conditioners), body soaps, oral care (toothpaste/toothbrushes), and personal hygiene products. Add your items in our order form to get **Free Doorstep Delivery**!";
-  }
-
-  // Healthcare / First Aid category query
-  if (
-    lower.includes('healthcare') || 
-    lower.includes('first aid') || 
-    lower.includes('bandage') || 
-    lower.includes('dettol') || 
-    lower.includes('cotton') || 
-    lower.includes('antiseptic') ||
-    lower.includes('thermometer')
-  ) {
-    return "🩺 **Healthcare Essentials**: We stock first aid kits, bandages, antiseptic liquids (Dettol/Savlon), medical cotton, thermometers, and daily healthcare supplies at Sai Rajo Medical Shop.";
-  }
-
-  // Medical Devices category query
-  if (
-    lower.includes('medical device') || 
-    lower.includes('device') || 
-    lower.includes('bp monitor') || 
-    lower.includes('glucometer') || 
-    lower.includes('sugar testing') || 
-    lower.includes('oximeter') || 
-    lower.includes('nebulizer') ||
-    lower.includes('heating pad')
-  ) {
-    return "🌡️ **Medical Devices**: We sell digital Blood Pressure monitors, Blood Glucose (Sugar) testing meters & strips, Pulse Oximeters, Nebulizers, Digital Thermometers, and Heating Pads. Place an order on our homepage for fast delivery!";
-  }
-
-  // Ayurvedic Products category query
-  if (
-    lower.includes('ayurvedic') || 
-    lower.includes('ayurveda') || 
-    lower.includes('herbal') || 
-    lower.includes('chyawanprash') || 
-    lower.includes('dabur') || 
-    lower.includes('zandu') || 
-    lower.includes('patanjali')
-  ) {
-    return "🌿 **Ayurvedic Products**: We carry genuine Ayurvedic products including Dabur Chyawanprash, Ayurvedic herbal oils, immunity boosters, and natural remedies at **Sai Rajo Medical Shop**.";
-  }
-
-  // Supplements / Nutrition category query
-  if (
-    lower.includes('supplement') || 
-    lower.includes('protein') || 
-    lower.includes('multivitamin') || 
-    lower.includes('vitamin') || 
-    lower.includes('calcium') || 
-    lower.includes('omega 3')
-  ) {
-    return "🏋️ **Health & Nutrition Supplements**: We supply multivitamins, calcium & Vitamin D3 supplements, protein powders, Vitamin C, and Omega-3 fish oil capsules. Order online on our homepage with **20% OFF**!";
   }
 
   // Product categories list query
@@ -207,7 +210,7 @@ function generateFallbackResponse(userMessage) {
  * Controller: Handle Chatbot message request
  * POST /api/chatbot/chat
  */
-exports.chatWithAI = async (req, res) => {
+exports.chatWithAI = async (req, res, next) => {
   try {
     const { message, history = [] } = req.body;
 
@@ -282,10 +285,6 @@ exports.chatWithAI = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('[Chatbot] Unexpected error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to process AI chat message.'
-    });
+    next(error);
   }
 };

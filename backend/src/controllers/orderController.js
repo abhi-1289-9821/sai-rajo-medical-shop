@@ -173,10 +173,26 @@ const createOrder = async (req, res, next) => {
  */
 const getOrders = async (req, res, next) => {
   try {
-    const orders = await db.query('SELECT * FROM orders ORDER BY created_at DESC');
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+    const offset = (page - 1) * limit;
+
+    const countResult = await db.query('SELECT COUNT(*) as total FROM orders');
+    const total = countResult[0] ? parseInt(countResult[0].total) : 0;
+
+    const orders = await db.query(
+      'SELECT * FROM orders ORDER BY created_at DESC LIMIT ? OFFSET ?',
+      [limit, offset]
+    );
     
     return res.status(200).json({
       success: true,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1
+      },
       orders
     });
   } catch (error) {

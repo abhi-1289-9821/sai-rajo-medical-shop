@@ -10,44 +10,49 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const verifySession = async () => {
-      const storedAdmin = localStorage.getItem('admin_user');
-      if (token && storedAdmin) {
-        try {
-          // Verify with backend session refresh endpoint
-          const response = await API.get('/auth/refresh');
-          if (response.data.success) {
-            localStorage.setItem('admin_token', response.data.token);
-            setToken(response.data.token);
-            setAdmin(response.data.admin);
-          } else {
-            logout();
-          }
-        } catch (err) {
-          console.error('[AuthContext] Session hydration verification failed:', err);
-          logout();
+      try {
+        // Verify session with backend refresh endpoint (cookie or token header)
+        const response = await API.get('/auth/refresh');
+        if (response.data.success) {
+          setAdmin(response.data.admin);
+          setToken(response.data.token || true);
+        } else {
+          setAdmin(null);
+          setToken(null);
         }
+      } catch (err) {
+        setAdmin(null);
+        setToken(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     verifySession();
   }, []);
 
   const login = (jwtToken, adminData) => {
-    localStorage.setItem('admin_token', jwtToken);
-    localStorage.setItem('admin_user', JSON.stringify(adminData));
-    setToken(jwtToken);
+    if (jwtToken) {
+      localStorage.setItem('admin_token', jwtToken);
+    }
+    setToken(jwtToken || true);
     setAdmin(adminData);
   };
 
-  const logout = () => {
-    localStorage.removeItem('admin_token');
-    localStorage.removeItem('admin_user');
-    setToken(null);
-    setAdmin(null);
+  const logout = async () => {
+    try {
+      await API.post('/auth/logout');
+    } catch (e) {
+      console.warn('[AuthContext] Server logout notification failed:', e.message);
+    } finally {
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_user');
+      setToken(null);
+      setAdmin(null);
+    }
   };
 
-  const isAuthenticated = !!token;
+  const isAuthenticated = !!admin;
 
   return (
     <AuthContext.Provider value={{ admin, token, isAuthenticated, login, logout, loading }}>

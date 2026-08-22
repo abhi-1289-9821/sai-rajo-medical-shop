@@ -24,4 +24,7 @@ router.post('/login', loginLimiter, authController.login);
 // Route to verify and refresh active admin token session
 router.get('/refresh', authMiddleware, authController.refresh);
 
+// Route for admin logout
+router.post('/logout', authController.logout);
+
 module.exports = router;

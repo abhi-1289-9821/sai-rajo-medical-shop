@@ -23,6 +23,7 @@ router.post('/', orderLimiter, upload.single('prescription'), orderController.cr
 
 // Public route: customer tracking order status by order number
 router.get('/track/:order_number', orderController.getOrderByNumber);
+router.get('/:order_number', orderController.getOrderByNumber);
 
 // Protected routes: admin dashboard order listing and management
 router.get('/', authMiddleware, orderController.getOrders);

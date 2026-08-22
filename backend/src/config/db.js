@@ -1,6 +1,20 @@
 const mysql = require('mysql2/promise');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+
+// Support CA certificate verification for managed databases (e.g. Aiven)
+let caCert = process.env.DB_CA_CERT;
+if (!caCert) {
+  const caPath = path.join(__dirname, '../../ca.pem');
+  if (fs.existsSync(caPath)) {
+    caCert = fs.readFileSync(caPath, 'utf8');
+  }
+}
+
+const sslOption = process.env.DB_SSL === 'false'
+  ? false
+  : (caCert ? { rejectUnauthorized: true, ca: caCert } : { rejectUnauthorized: false });
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
@@ -13,8 +27,7 @@ const pool = mysql.createPool({
   queueLimit: 0,
   enableKeepAlive: true,
   keepAliveInitialDelay: 10000,
-  // Aiven and other managed databases require SSL
-  ssl: process.env.DB_SSL === 'false' ? false : { rejectUnauthorized: false }
+  ssl: sslOption
 });
 
 // Verify database connection on startup

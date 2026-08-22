@@ -2,12 +2,24 @@ const jwt = require('jsonwebtoken');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
+function getCookie(req, name) {
+  if (req.cookies && req.cookies[name]) return req.cookies[name];
+  if (req.headers && req.headers.cookie) {
+    const rawCookies = req.headers.cookie.split(';');
+    for (let c of rawCookies) {
+      const [key, value] = c.trim().split('=');
+      if (key === name) return decodeURIComponent(value);
+    }
+  }
+  return null;
+}
+
 const authMiddleware = (req, res, next) => {
   try {
-    let token = null;
+    // Extract token from httpOnly cookie or Authorization header
+    let token = getCookie(req, 'admin_token') || getCookie(req, 'token');
 
-    // Support extracting token strictly from Authorization header
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
       token = req.headers.authorization.split(' ')[1];
     }
     

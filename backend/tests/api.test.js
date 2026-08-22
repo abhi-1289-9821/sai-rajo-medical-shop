@@ -117,6 +117,39 @@ describe('API Tests', () => {
         if (originalKey) process.env.GEMINI_API_KEY = originalKey;
       }
     });
+
+    it('should return specific medicine inquiry response for omez-d', async () => {
+      const originalKey = process.env.GEMINI_API_KEY;
+      delete process.env.GEMINI_API_KEY;
+      try {
+        const res = await request(app)
+          .post('/api/chatbot/chat')
+          .send({ message: 'omez-d' });
+
+        expect(res.statusCode).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.reply).toContain('Omez-D');
+        expect(res.body.reply).toContain('Medicine Inquiry');
+      } finally {
+        if (originalKey) process.env.GEMINI_API_KEY = originalKey;
+      }
+    });
+
+    it('should return a welcoming greeting response for hii', async () => {
+      const originalKey = process.env.GEMINI_API_KEY;
+      delete process.env.GEMINI_API_KEY;
+      try {
+        const res = await request(app)
+          .post('/api/chatbot/chat')
+          .send({ message: 'hii' });
+
+        expect(res.statusCode).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.reply).toContain('Hello! Welcome to Sai Rajo Medical Shop');
+      } finally {
+        if (originalKey) process.env.GEMINI_API_KEY = originalKey;
+      }
+    });
   });
 });
 
