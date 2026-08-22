@@ -34,6 +34,194 @@ STRICT GUARDRAILS & RULES:
 function generateFallbackResponse(userMessage) {
   const lower = userMessage.toLowerCase().trim();
 
+  // ─── Medicine Knowledge Base ──────────────────────────────────────────────
+  const MEDICINE_INFO = {
+    'cetirizine': {
+      name: 'Cetirizine (Antihistamine)',
+      uses: 'Allergic rhinitis (sneezing, runny nose, itchy eyes), skin allergies (hives, rashes), and seasonal allergies.',
+      howItWorks: 'Blocks histamine receptors to reduce allergic reactions.',
+      commonBrands: 'Zyrtec, Alerid, Cetcip, Okacet',
+      sideEffects: 'Drowsiness, dry mouth, headache (usually mild).',
+      disclaimer: 'Consult your doctor for dosage. Available OTC in most cases but check with a pharmacist.'
+    },
+    'cetirizine hydrochloride': { alias: 'cetirizine' },
+    'citrazene': { alias: 'cetirizine' },
+    'citrazine': { alias: 'cetirizine' },
+    'cetrazine': { alias: 'cetirizine' },
+    'citazini': { alias: 'cetirizine' },
+    'cetrizine': { alias: 'cetirizine' },
+    'cetzine': { alias: 'cetirizine' },
+    'paracetamol': {
+      name: 'Paracetamol (Acetaminophen)',
+      uses: 'Fever reduction, mild to moderate pain relief (headache, body ache, toothache, period pain).',
+      howItWorks: 'Blocks pain signals and reduces fever by acting on the brain\'s temperature control center.',
+      commonBrands: 'Dolo 650, Crocin, Calpol, Tylenol',
+      sideEffects: 'Generally safe. Overdose can cause serious liver damage — always take the correct dose.',
+      disclaimer: 'Do not exceed 4g per day. Avoid alcohol while taking paracetamol.'
+    },
+    'dolo': { alias: 'paracetamol' },
+    'dolo 650': { alias: 'paracetamol' },
+    'crocin': { alias: 'paracetamol' },
+    'calpol': { alias: 'paracetamol' },
+    'cough syrup': {
+      name: 'Cough Syrup',
+      uses: 'Dry cough (suppressants like Dextromethorphan), wet/productive cough (expectorants like Guaifenesin), and throat soothing.',
+      howItWorks: 'Suppressants suppress the cough reflex; expectorants thin mucus for easier clearing.',
+      commonBrands: 'Benadryl, Corex, Alex, Tusq, Ambrolite, Grilinctus',
+      sideEffects: 'Drowsiness (some formulations), nausea. Avoid driving after taking drowsy formulations.',
+      disclaimer: 'Persistent cough beyond 1 week warrants a doctor visit to rule out infection.'
+    },
+    'combiflam': {
+      name: 'Combiflam (Ibuprofen + Paracetamol)',
+      uses: 'Pain relief, fever, muscle aches, dental pain, arthritis, and post-operative pain.',
+      howItWorks: 'Combination of Ibuprofen (anti-inflammatory) and Paracetamol (pain/fever) for stronger effect.',
+      commonBrands: 'Combiflam, Ibuclin',
+      sideEffects: 'Stomach upset, heartburn, nausea. Take with food.',
+      disclaimer: 'Avoid on empty stomach. Not recommended for kidney/liver disease or during pregnancy.'
+    },
+    'azithromycin': {
+      name: 'Azithromycin (Antibiotic)',
+      uses: 'Bacterial infections: chest infections, throat infections, pneumonia, skin infections, STIs.',
+      howItWorks: 'Stops bacteria from producing proteins they need to survive and multiply.',
+      commonBrands: 'Azithral, Zithromax, Azee, Azifast',
+      sideEffects: 'Nausea, diarrhea, stomach pain, headache.',
+      disclaimer: 'Prescription-only antibiotic. Must complete the full course even if feeling better.'
+    },
+    'omeprazole': {
+      name: 'Omeprazole / Omez-D (Proton Pump Inhibitor)',
+      uses: 'Acidity, heartburn, GERD (acid reflux), stomach ulcers, and protecting the stomach from anti-inflammatory drugs.',
+      howItWorks: 'Reduces the amount of acid produced in the stomach.',
+      commonBrands: 'Omez, Omez-D, Omprazole, Prilosec',
+      sideEffects: 'Headache, nausea, diarrhea. Long-term use may affect magnesium/B12 absorption.',
+      disclaimer: 'Long-term use beyond 2 weeks should be under medical supervision.'
+    },
+    'omez': { alias: 'omeprazole' },
+    'omez-d': { alias: 'omeprazole' },
+    'omezd': { alias: 'omeprazole' },
+    'pantoprazole': {
+      name: 'Pantoprazole / Pan-40 (Proton Pump Inhibitor)',
+      uses: 'Acid reflux, GERD, stomach ulcers, acidity, and Helicobacter pylori infections (combined therapy).',
+      howItWorks: 'Blocks the enzyme that pumps acid into the stomach.',
+      commonBrands: 'Pan-40, Pantocid, Pantodac, Protonix',
+      sideEffects: 'Headache, diarrhea, nausea, gas. Generally well-tolerated.',
+      disclaimer: 'Take 30 minutes before meals for best effect. Consult a doctor for long-term use.'
+    },
+    'pantocid': { alias: 'pantoprazole' },
+    'pan-40': { alias: 'pantoprazole' },
+    'allegra': {
+      name: 'Fexofenadine / Allegra (Antihistamine)',
+      uses: 'Seasonal allergic rhinitis, hives (urticaria), and skin itching from allergies.',
+      howItWorks: 'Non-drowsy antihistamine that blocks histamine without crossing the blood-brain barrier.',
+      commonBrands: 'Allegra, Telfast, Fexova',
+      sideEffects: 'Minimal. Occasionally headache or nausea. Non-sedating — safe to drive.',
+      disclaimer: 'Take with water, not with fruit juice (reduces absorption). Consult a doctor during pregnancy.'
+    },
+    'sinarest': {
+      name: 'Sinarest (Paracetamol + Phenylephrine + Chlorphenamine)',
+      uses: 'Common cold, nasal congestion, runny nose, sore throat, headache, and mild fever.',
+      howItWorks: 'Combination: paracetamol for fever/pain, decongestant for blocked nose, antihistamine for runny nose.',
+      commonBrands: 'Sinarest, Coldarin',
+      sideEffects: 'Drowsiness, dry mouth, difficulty urinating. Avoid driving.',
+      disclaimer: 'Avoid in patients with high blood pressure or enlarged prostate without consulting a doctor.'
+    },
+    'aspirin': {
+      name: 'Aspirin (Acetylsalicylic Acid)',
+      uses: 'Pain relief, fever, blood clot prevention (low-dose), and reducing heart attack/stroke risk.',
+      howItWorks: 'Reduces prostaglandins (pain/inflammation messengers) and prevents platelets from clumping.',
+      commonBrands: 'Disprin, Ecosprin, Aspro',
+      sideEffects: 'Stomach irritation, bleeding risk. Never give to children under 16 (Reye\'s syndrome risk).',
+      disclaimer: 'Low-dose aspirin (75mg) for heart conditions must be prescribed by a doctor.'
+    },
+    'metformin': {
+      name: 'Metformin (Antidiabetic)',
+      uses: 'Type 2 diabetes management. Reduces blood sugar and improves insulin sensitivity.',
+      howItWorks: 'Reduces glucose production in the liver and improves the body\'s response to insulin.',
+      commonBrands: 'Glucophage, Glycomet, Obimet',
+      sideEffects: 'Nausea, diarrhea, stomach upset (usually improves after 1-2 weeks). Take with food.',
+      disclaimer: 'Prescription-only diabetes medication. Never stop without consulting your doctor.'
+    },
+    'augmentin': {
+      name: 'Augmentin (Amoxicillin + Clavulanate)',
+      uses: 'Bacterial infections: ear infections, sinusitis, pneumonia, urinary tract infections, skin infections.',
+      howItWorks: 'Amoxicillin kills bacteria; clavulanate protects it from bacterial enzymes that would destroy it.',
+      commonBrands: 'Augmentin, Mox-CV, Clavam',
+      sideEffects: 'Diarrhea, nausea, rash. Probiotics can help with diarrhea side effect.',
+      disclaimer: 'Prescription-only antibiotic. Always complete the full prescribed course.'
+    },
+    'liv 52': {
+      name: 'Liv.52 (Ayurvedic Liver Supplement)',
+      uses: 'Liver protection, liver detoxification, appetite improvement, and liver function support.',
+      howItWorks: 'Herbal blend (Himsra, Kasani) that supports liver cell regeneration and protects against toxins.',
+      commonBrands: 'Liv.52 (Himalaya)',
+      sideEffects: 'Generally well-tolerated. Rare: mild nausea.',
+      disclaimer: 'Consult a doctor if you have acute liver disease. Not a replacement for medical liver treatment.'
+    },
+    'liv52': { alias: 'liv 52' },
+    'multivitamin': {
+      name: 'Multivitamin Supplements',
+      uses: 'Filling nutritional gaps, boosting immunity, improving energy, and supporting overall health.',
+      howItWorks: 'Provides essential vitamins (A, B, C, D, E, K) and minerals (zinc, iron) the body needs.',
+      commonBrands: 'Becosules, Supradyn, Revital, Centrum',
+      sideEffects: 'Generally safe. Excess fat-soluble vitamins (A, D, E, K) can accumulate — don\'t overdose.',
+      disclaimer: 'Best taken with food. A balanced diet is always better than supplements alone.'
+    },
+    'becosules': { alias: 'multivitamin' }
+  };
+
+  // ─── Medicine Query Extractor ─────────────────────────────────────────────
+  // Detects "what is X", "tell me about X", "benefit of X", "uses of X", "info on X" patterns
+  const infoPatterns = [
+    /(?:what is|tell me about|about|info on|information on|use of|uses of|benefit of|benefits of|describe|explain|side effect of|side effects of|dosage of|how does|when to use)\s+(.+)/i,
+    /(.+)\s+(?:kya hai|kya hota hai|ke fayde|ke upyog|ke bare mein|tablet|capsule|syrup|medicine|drug)/i
+  ];
+
+  let extractedMedName = null;
+  for (const pattern of infoPatterns) {
+    const match = lower.match(pattern);
+    if (match) {
+      extractedMedName = match[1].trim().replace(/[?.,!]+$/, '');
+      break;
+    }
+  }
+
+  // Helper: find medicine info (handles aliases and fuzzy names)
+  function findMedicineInfo(name) {
+    if (!name) return null;
+    const key = name.toLowerCase().trim();
+    let info = MEDICINE_INFO[key];
+    if (info && info.alias) info = MEDICINE_INFO[info.alias];
+    if (info) return info;
+    // Partial match fallback
+    for (const [medKey, medInfo] of Object.entries(MEDICINE_INFO)) {
+      if (!medInfo.alias && (key.includes(medKey) || medKey.includes(key))) return medInfo;
+    }
+    return null;
+  }
+
+  function buildMedicineInfoResponse(info, queryName) {
+    return `💊 **${info.name}**\n\n` +
+      `**📋 Uses:** ${info.uses}\n\n` +
+      `**⚙️ How It Works:** ${info.howItWorks}\n\n` +
+      `**🏷️ Common Brands:** ${info.commonBrands}\n\n` +
+      `**⚠️ Possible Side Effects:** ${info.sideEffects}\n\n` +
+      `**🩺 Note:** ${info.disclaimer}\n\n` +
+      `---\n✅ **${info.commonBrands.split(',')[0].trim()}** and other brands are available at **Sai Rajo Medical Shop** with **20% DISCOUNT** + **Free Doorstep Delivery**!`;
+  }
+
+  // ─── Check if user asked an info/benefit question ────────────────────────
+  if (extractedMedName) {
+    const medInfo = findMedicineInfo(extractedMedName);
+    if (medInfo) {
+      return buildMedicineInfoResponse(medInfo, extractedMedName);
+    }
+  }
+
+  // Also check if the whole message is a known medicine name (simple lookup)
+  const directInfo = findMedicineInfo(lower);
+  if (directInfo) {
+    return buildMedicineInfoResponse(directInfo, lower);
+  }
+
   // Safety Guardrail 1: Diagnosis or severe symptom check (Highest Priority)
   if (
     lower.includes('diagnose') || 
@@ -64,6 +252,12 @@ function generateFallbackResponse(userMessage) {
     return "👋 **Hello! Welcome to Sai Rajo Medical Shop!**\n\nI am your 24/7 AI Assistant. How can I help you today?\n\n- 💊 **Medicines** (20% OFF + Free Doorstep Delivery)\n- 👶 **Baby Care Products**\n- 🌡️ **Medical Devices**\n- 🧴 **Personal Care & Supplements**\n- 📝 **Order Placement & Prescription Upload**\n\nFeel free to ask about any medicine, product category, store location, or ordering instructions!";
   }
 
+  // Conversational check
+  const conversationalPhrases = ['how are you', 'how r u', 'how r you', 'sup', "what's up", 'whats up'];
+  if (conversationalPhrases.includes(lower) || conversationalPhrases.some(p => lower === p)) {
+    return "😊 **I'm doing great, thank you for asking!** I am the Sai Rajo Medical Shop AI Assistant — always here to help you with your medicine and healthcare needs 24/7!\n\nIs there a specific medicine you'd like to know about, or would you like to place an order?";
+  }
+
   // Thanks / Closing check
   const thanks = ['thanks', 'thank you', 'thx', 'thanku', 'dhanyawad', 'ok', 'okay', 'bye', 'goodbye'];
   if (thanks.includes(lower)) {
@@ -72,7 +266,8 @@ function generateFallbackResponse(userMessage) {
 
   // Specific Medicine Name check (Dolo, Paracetamol, etc.)
   if (lower.includes('dolo') || lower.includes('paracetamol') || lower.includes('crocin')) {
-    return "💊 **Dolo 650 (Paracetamol 650mg)**:\n\n**Dolo 650** is a popular medicine containing **Paracetamol (650mg)** used for:\n- 🌡️ Lowering body temperature during fever\n- 🤕 Relieving mild to moderate pain (headaches, body aches, toothaches)\n\n**Availability at Sai Rajo Medical Shop**:\nIt is available in our store with **20% DISCOUNT** and **Free Doorstep Delivery**!\n\n⚠️ *Disclaimer: Always follow doctor's advice or label instructions. For persistent fever (>3 days), consult a doctor.*";
+    return buildMedicineInfoResponse(MEDICINE_INFO['paracetamol'], 'Dolo 650 / Paracetamol');
+
   }
 
   // Specific Category Scored Matching Engine
