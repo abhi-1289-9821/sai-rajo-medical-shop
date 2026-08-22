@@ -115,14 +115,20 @@ exports.chatWithAI = async (req, res, next) => {
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         temperature: 0.45,
-        maxOutputTokens: 500,
+        maxOutputTokens: 1024,
       },
     });
 
-    const reply = response.text?.trim();
+    // Extract text — handle both .text property and candidates array
+    // depending on SDK version and finish reason
+    const reply =
+      (typeof response.text === 'string' ? response.text : null) ??
+      response.candidates?.[0]?.content?.parts?.[0]?.text ??
+      null;
 
-    if (!reply) {
-      throw new Error('Gemini returned empty text.');
+    if (!reply || !reply.trim()) {
+      const reason = response.candidates?.[0]?.finishReason || 'unknown';
+      throw new Error(`Gemini returned empty text. Finish reason: ${reason}`);
     }
 
     return res.status(200).json({ success: true, reply });
