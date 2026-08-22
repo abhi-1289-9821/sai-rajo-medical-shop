@@ -150,6 +150,23 @@ describe('API Tests', () => {
         if (originalKey) process.env.GEMINI_API_KEY = originalKey;
       }
     });
+
+    it('should return specific medicine inquiry response for omezd without hyphen', async () => {
+      const originalKey = process.env.GEMINI_API_KEY;
+      delete process.env.GEMINI_API_KEY;
+      try {
+        const res = await request(app)
+          .post('/api/chatbot/chat')
+          .send({ message: 'omezd' });
+
+        expect(res.statusCode).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.reply).toContain('Medicine Inquiry');
+        expect(res.body.reply).toContain('Omez-D');
+      } finally {
+        if (originalKey) process.env.GEMINI_API_KEY = originalKey;
+      }
+    });
   });
 });
 

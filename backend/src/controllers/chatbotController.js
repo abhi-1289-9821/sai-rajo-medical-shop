@@ -125,17 +125,18 @@ function generateFallbackResponse(userMessage) {
     return bestMatch.response;
   }
 
-  // Specific named medicines fallback (expanded with popular Indian pharmacy items including Omez-D)
+  // Specific named medicines fallback (expanded with popular Indian pharmacy items including Omez-D / Omezd)
   const commonMeds = [
-    'omez-d', 'omez', 'omeprazole', 'pantocid', 'pan-40', 'pan 40', 'pantoprazole', 'azithromycin', 
+    'omez-d', 'omezd', 'omez', 'omeprazole', 'pantocid', 'pan-40', 'pan40', 'pan 40', 'pantoprazole', 'azithromycin', 
     'combiflam', 'dispirin', 'gelusil', 'digene', 'vicks', 'cough syrup', 'saridon', 'aspirin', 
     'zinetac', 'allegra', 'sinarest', 'cetirizine', 'pain killer', 'fever medicine', 'calpol', 
     'crocin', 'dolo', 'montair', 'amoxyclav', 'augmentin', 'metformin', 'telma', 'atorvas', 
     'aciloc', 'rantac', 'pantodac', 'liv52', 'shelcal', 'ecosprin', 'limcee', 'becosules', 'citralka', 'evion'
   ];
 
-  const cleanLower = lower.replace(/[-_]/g, ' ');
-  const matchedMed = commonMeds.find(med => lower.includes(med) || cleanLower.includes(med.replace(/[-_]/g, ' ')));
+  const stripNonAlpha = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const targetAlpha = stripNonAlpha(lower);
+  const matchedMed = commonMeds.find(med => lower.includes(med) || targetAlpha.includes(stripNonAlpha(med)));
 
   // Exclude common greetings, filler words, and question words from short medicine detection
   const nonMedicineWords = [
@@ -143,9 +144,8 @@ function generateFallbackResponse(userMessage) {
     'yes', 'no', 'bye', 'goodbye', 'help', 'info', 'what', 'why', 'how', 'where', 'who', 'is', 'are'
   ];
 
-  const isShortQuery = userMessage.trim().length >= 3 && 
-    userMessage.trim().length <= 40 && 
-    userMessage.trim().split(/\s+/).length <= 5 && 
+  const isShortQuery = userMessage.trim().length >= 2 && 
+    userMessage.trim().length <= 50 && 
     !nonMedicineWords.includes(lower);
 
   if (matchedMed || lower.includes('medicine') || lower.includes('tablet') || lower.includes('capsule') || lower.includes('syrup') || isShortQuery) {
@@ -202,8 +202,11 @@ function generateFallbackResponse(userMessage) {
     return "🎉 **Special Local Offers**:\n\n- **20% DISCOUNT** on all medicine orders submitted today!\n- **FREE Doorstep Delivery** on all orders with no minimum order value.\nPlace your order directly on our website for fast home delivery!";
   }
 
-  // Generic Query response tailored to item searched
-  return `🛍️ **Sai Rajo Medical Shop Assistant**:\n\nYes, we stock a complete inventory of medicines, baby care products, personal care items, medical devices, ayurvedic products, and supplements!\n\nTo inquire or order **"${userMessage}"**, simply fill out your name, phone, address, and medicine details on our homepage form. Our pharmacists will fulfill your order with **20% DISCOUNT** and **Free Doorstep Delivery**!`;
+  // Clean Medicine & Product Inquiry Fallback (replaces old awkward boilerplate text)
+  const cleanInput = userMessage.trim().replace(/^['"\s]+|['"\s]+$/g, '');
+  const formattedInput = cleanInput.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+
+  return `💊 **Medicine Inquiry**: Yes! **${formattedInput}** is available at **Sai Rajo Medical Shop**!\n\nYou can order it directly on our website with **20% DISCOUNT** and **Free Doorstep Delivery**.\n\n**How to Order**:\n1. Fill in your Name, Phone, and Delivery Address on our home page.\n2. Add **${formattedInput}** and the required quantity in the medicine list.\n3. (Optional) Upload your prescription if required.\n4. Click **Submit Order**!`;
 }
 
 /**
